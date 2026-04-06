@@ -1060,9 +1060,9 @@
     </div>
   </div>
 
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <script>
     const STORAGE_KEY = "bus-route-layout-v1";
@@ -1492,15 +1492,16 @@
 
     async function initFirebaseRealtime() {
       try {
-        if (typeof firebase === "undefined" || !firebase?.database) {
+        const hasFirebaseLib = typeof window.firebase !== "undefined" && typeof window.firebase.database === "function";
+        if (!hasFirebaseLib) {
           console.warn("Firebase 라이브러리가 아직 준비되지 않았습니다.");
-          return;
+          return false;
         }
 
         const hasConfig = FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId && FIREBASE_CONFIG.databaseURL;
         if (!hasConfig) {
           console.warn("Firebase 설정값이 부족합니다.");
-          return;
+          return false;
         }
 
         if (!firebase.apps.length) {
@@ -1517,7 +1518,7 @@
           await ref.set(getRemotePayload());
         }
 
-        ref.off("value");
+        ref.off();
         ref.on("value", (snapshot) => {
           const incoming = snapshot.val();
           if (!incoming) return;
@@ -1545,9 +1546,23 @@
         });
 
         console.log("Firebase 실시간 공유 연결 완료:", REMOTE_BOARD_PATH);
+        return true;
       } catch (error) {
         console.error("Firebase 초기화 오류:", error);
+        return false;
       }
+    }
+
+    async function bootFirebaseRealtime(retry = 0) {
+      const connected = await bootFirebaseRealtime();
+      if (connected) return;
+      if (retry >= 30) {
+        console.error("Firebase 연결 재시도 실패");
+        return;
+      }
+      setTimeout(() => {
+        bootFirebaseRealtime(retry + 1);
+      }, 500);
     }
 
     function flashButton(button) {
@@ -1944,7 +1959,7 @@
       });
       renderBoard();
       resizeAllTextareas();
-      if (typeof firebase === "undefined" || !firebase.apps || !firebase.database) {
+      if (typeof window.firebase === "undefined" || !firebase.apps || !firebase.database) {
         alert("Firebase 라이브러리를 불러오지 못했습니다.");
         return;
       }
