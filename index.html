@@ -1,0 +1,2849 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=0.6, minimum-scale=0.2, maximum-scale=5.0, user-scalable=yes" />
+  <title>   </title>
+  <style>
+    :root {
+      /* ⭐ mapping 사이즈 직접 숫자 조절 */
+      --mapping-region-width: 110px;
+      --mapping-region-height: auto;
+      --mapping-stop-width: 150px;
+      --mapping-stop-height: auto;
+      /* ⭐ 카드 가로 사이즈 조절 */
+      --mapping-card-min: 120px;
+      --mapping-card-max: 180px;
+      --app-bg: #e9e9e9;
+      --panel-bg: #f7f7f7;
+      --line: #333;
+      --line-soft: #666;
+      --title-red: #d80000;
+      --title-blue: #0026ff;
+      --yellow: #fff9cc;
+      --blue: #083dff;
+      --red: #ff1818;
+      --beige: #f3ebde;
+      --purple: #d9d4e4;
+      --greenish: #e8edc0;
+      --admin-on: #e7f7e7;
+      --admin-off: #f5f5f5;
+      --board-max-width: 900px;
+      --radius: 12px;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      --fs-title: 18px;
+      --fs-body: clamp(11px, 1.2vw, 16px);
+      --fs-small: clamp(10px, 1ch, 13px);
+      --fs-time: clamp(18px, 2vw, 34px);
+
+      --col-region-min: 40px;
+      --col-region-max: 53px;
+      --col-region-fluid: 12vw; /* ⭐ 지역 */
+      --col-stop-min: 110px;
+      --col-stop-max: 130px;
+      --col-stop-fluid: 36vw; /* ⭐ 승차지점 */
+      --col-move-min: 18px;
+      --col-move-max: 26px;
+      --col-move-fluid: 10vw; /* ⭐ 이동시간 */
+      --col-ride-min: 36px;
+      --col-ride-max: 48px;
+      --col-ride-fluid: 16vw; /* ⭐ 승차시간 */
+      --col-names-min: 120px;
+      --col-names-max: 160px;
+      --col-count-min: 25px;
+      --col-count-max: 34px;
+      --col-count-fluid: 5vw; /* ⭐ 인원 */
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "돋움", Dotum, "Malgun Gothic", sans-serif;
+      background: linear-gradient(180deg, #f4f4f4 0%, #e9e9e9 100%);
+      color: #111;
+    }
+
+    .app {
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 7px;
+      gap: 10px;
+    }
+
+    .toolbar,
+    .data-panel,
+    .help-panel {
+      padding: 13px;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .password-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.32);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 11000;
+      padding: 20px;
+    }
+
+    .password-overlay.show {
+      display: flex;
+    }
+
+    .password-box {
+      width: min(92vw, 380px);
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+      border: 1px solid #d6d6d6;
+      overflow: hidden;
+    }
+
+    .password-title {
+      padding: 14px 16px;
+      font-size: 17px;
+      font-weight: 800;
+      background: #f7f7f7;
+      border-bottom: 1px solid #e2e2e2;
+    }
+
+    .password-body {
+      padding: 13px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .password-body label {
+      font-size: 14px;
+      font-weight: 700;
+      display: grid;
+      gap: 6px;
+    }
+
+    .password-body input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #b8b8b8;
+      border-radius: 10px;
+      font: inherit;
+    }
+
+    .password-error {
+      min-height: 20px;
+      font-size: 13px;
+      color: #c40000;
+      font-weight: 700;
+    }
+
+    .password-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 0 16px 16px;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: center;
+      padding: 0;
+      background: transparent;
+      overflow-x: auto;
+    }
+
+    .toolbar-box {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: min(100%, var(--board-max-width));
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid #d5d5d5;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    @media (max-width: 1000px) {
+      .toolbar-box {
+        flex-wrap: wrap;
+      }
+      .toolbar-left,
+      .toolbar-right {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+      }
+      .toolbar-left .btn,
+      .toolbar-right .btn {
+        border: 1px solid #999;
+        background: #fff;
+        padding: 3px 6px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 400;
+        cursor: pointer;
+        transition: 0.2s ease;
+        text-align: center;
+        justify-content: center;
+        align-items: center;
+        display: inline-flex;
+      }
+
+      .board-wrap {
+        width: 100% !important;
+      }
+    }
+
+    .toolbar-left,
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .btn {
+      border: 1px solid #999;
+      background: #fff;
+      padding: 3px 6px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 400;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(1px); }
+
+    .btn-admin.active {
+      background: #0b6bff;
+      border-color: #0b6bff;
+      color: #fff;
+    }
+
+    .btn-delete.active {
+      background: #d80000;
+      border-color: #d80000;
+      color: #fff;
+    }
+
+    .row-delete-cell {
+      text-align: center;
+      background: #f7f7f7 !important;
+    }
+
+    .delete-row-btn {
+      border: 1px solid #cc0000;
+      background: #fff2f2;
+      color: #b30000;
+      font-weight: 800;
+      border-radius: 8px;
+      padding: 3px 5px;
+      font-size: 0.75em;
+      cursor: pointer;
+    }
+
+    .add-row-inline-btn {
+      border: 1px solid #0b6bff;
+      background: #eef5ff;
+      color: #0b4fd1;
+      font-weight: 900;
+      border-radius: 8px;
+      padding: 6px 6px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .add-row-inline-btn:hover {
+      background: #dfeeff;
+      padding: 4px 10px;
+    }
+
+    .delete-row-btn:hover {
+      background: #ffe3e3;
+      padding: 4px 10px;
+    }
+
+    .limit-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .limit-wrap input {
+      width: 110px;
+      padding: 8px 10px;
+      border: 1px solid #aaa;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    .board-wrap {
+      width: min(100%, var(--board-max-width));
+      overflow-x: auto;
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid #cfcfcf;
+    }
+
+    .route-board {
+      width: 100%;
+      padding: 7px;
+      font-size: 14px;
+      min-width: 100%;
+      margin: 0 auto;
+      border-collapse: collapse;
+      table-layout: fixed;
+      background: #ddd;
+    }
+
+    body.capture-render .board-wrap {
+      width: auto !important;
+      max-width: none !important;
+      overflow: visible !important;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    body.capture-render .route-board {
+      min-width: 900px !important;
+      width: 900px !important;
+    }
+
+    body.capture-render .route-board .title-cell,
+    body.capture-render .route-board .stop-name,
+    body.capture-render .route-board .names-cell,
+    body.capture-render .route-board .region,
+    body.capture-render .route-board .time-small,
+    body.capture-render .route-board .time-big,
+    body.capture-render .route-board .count-cell {
+      overflow: visible !important;
+      text-overflow: clip !important;
+    }
+
+    body.capture-render .route-board .title-cell {
+      white-space: normal !important;
+      line-height: 1.35;
+      padding-right: 18px;
+    }
+
+    body.capture-render .route-board .stop-name,
+    body.capture-render .route-board .names-cell,
+    body.capture-render .route-board .region {
+      white-space: pre-wrap !important;
+      word-break: keep-all !important;
+      overflow-wrap: anywhere;
+      line-height: 1.45;
+    }
+
+    body.capture-render .route-board .names-cell textarea,
+    body.capture-render .route-board .inline-editor,
+    body.capture-render .route-board .edit-field {
+      white-space: normal !important;
+      overflow: visible !important;
+      height: auto !important;
+      min-height: 0 !important;
+      resize: none !important;
+    }
+
+    .route-board col:nth-child(1) { width: clamp(var(--col-region-min), var(--col-region-fluid), var(--col-region-max)); }
+    .route-board col:nth-child(2) { width: clamp(var(--col-stop-min), var(--col-stop-fluid), var(--col-stop-max)); }
+    .route-board col:nth-child(3) { width: clamp(var(--col-move-min), var(--col-move-fluid), var(--col-move-max)); }
+    .route-board col:nth-child(4) { width: clamp(var(--col-ride-min), var(--col-ride-fluid), var(--col-ride-max)); }
+    .route-board col:nth-child(5) { width: var(--col-names-max); }
+    .route-board col:nth-child(6) { width: clamp(var(--col-count-min), var(--col-count-fluid), var(--col-count-max)); }
+    .route-board col:nth-child(7) { width: 27px; }
+
+    .route-board td,
+    .route-board th {
+      border: 1px solid var(--line);
+      background: var(--beige);
+      padding: 4.2px;
+      font-size: var(--fs-body);
+      vertical-align: middle;
+    }
+
+    .route-board th:nth-child(1),
+    .route-board td:nth-child(1) {
+      min-width: var(--col-region-min);
+      max-width: var(--col-region-max);
+      width: clamp(var(--col-region-min), var(--col-region-fluid), var(--col-region-max));
+    }
+    .route-board th:nth-child(2),
+    .route-board td:nth-child(2) { min-width: var(--col-stop-min); max-width: var(--col-stop-max); }
+    .route-board th:nth-child(3),
+    .route-board td:nth-child(3) {
+      min-width: var(--col-move-min);
+      max-width: var(--col-move-max);
+      width: clamp(var(--col-move-min), var(--col-move-fluid), var(--col-move-max));
+      overflow: visible; /* 🔥 넘침 허용 */
+    }
+    .route-board th:nth-child(4),
+    .route-board td:nth-child(4) {
+      min-width: var(--col-ride-min);
+      max-width: var(--col-ride-max);
+      width: clamp(var(--col-ride-min), var(--col-ride-fluid), var(--col-ride-max));
+    }
+    .route-board th:nth-child(5),
+    .route-board td:nth-child(5) { min-width: var(--col-names-min); max-width: var(--col-names-max); }
+    .route-board th:nth-child(6),
+    .route-board td:nth-child(6) {
+      min-width: var(--col-count-min);
+      max-width: var(--col-count-max);
+      width: clamp(var(--col-count-min), var(--col-count-fluid), var(--col-count-max));
+    }
+
+    .route-board .title-cell {
+      background: #f7f7f7;
+      font-size: var(--fs-title);
+      font-weight: 600;
+      text-align: left;
+      padding: 16px 12px;
+      padding-left: calc(10px + 3ch);
+      letter-spacing: -0.5px;
+    }
+
+    .title-cell .month { color: var(--title-red); }
+    .title-cell .route { color: var(--title-blue); }
+
+    .subhead {
+      background: #efefef !important;
+      text-align: center;
+      font-weight: 800;
+    }
+
+    .route-board thead th:nth-child(3) {
+      font-size: calc(var(--fs-body) * 0.7);
+    }
+
+    .region {
+      background: var(--purple) !important;
+      text-align: center;
+      font-weight: 400;
+      font-size: 20px;
+    }
+
+    .time-small {
+      text-align: center;
+      letter-spacing: 0px;
+      font-size: clamp(8px, 2vw, 14px) !important; /* 🔥 더 작게 자동조절 */
+      color: #000;
+      white-space: nowrap; /* 한줄 유지 */
+      overflow: visible; /* 🔥 잘림 제거 */
+    }
+
+    .time-big {
+      text-align: center;
+      letter-spacing: 1px;
+      font-size: clamp(14px, 4vw, 18px) !important;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .stop-name {
+      text-align: center;
+      letter-spacing: 0.5px;
+      font-size: clamp(13px, 3.5vw, 16px) !important;
+    }
+
+    .stop-name,
+    .names-cell,
+    .number-cell,
+    .note-cell {
+      word-break: keep-all;
+    }
+
+    /* 🔥 탑승자 명단 반응형 글자 크기 */
+    .names-cell textarea {
+      min-height: 35px;
+      font-size: clamp(13px, 1.3vw, 14px);
+      line-height: 1.5;
+    }
+
+    /* 🔥 데스크탑에서 이름 글자크기 고정 */
+    @media (min-width: 800px) {
+      .names-cell textarea {
+        font-size: 14px !important;
+      }
+    }
+
+    .count-cell {
+      text-align: center;
+      font-weight: 500;
+      white-space: nowrap;
+      font-size: 18px !important;
+    }
+    .count-cell input {
+      height: 30px;
+      font-size:18px;
+    }
+
+    .location-empty {
+      color: #b10000;
+      font-weight: 800;
+    }
+
+    .total-label {
+      background: #fff9cc !important;
+      text-align: center;
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .total-title {
+      background: #fff9cc !important;
+      color: #111;
+      text-align: center;
+      font-weight: 900;
+      font-size: 20px;
+    }
+
+    .total-count {
+      background:#fff9cc !important;
+      color: #083dff;
+      text-align: center;
+      font-weight: 900;
+      font-size: 16px !important;
+    }
+
+    .edit-on [contenteditable="true"],
+    .edit-on textarea,
+    .edit-on input.edit-field {
+      outline: 1px dashed #0b6bff;
+      outline-offset: -2px;
+      background: var(--admin-on);
+    }
+
+    .inline-editor {
+      width: 100%;
+      min-height: 34px;
+      border: 0;
+      resize: none; /* 🔥 수동 리사이즈 제거 */
+      font: inherit;
+      background: transparent;
+      padding: 2px;
+      line-height: 1.5;
+      word-spacing: 1.1ch;
+      overflow: hidden; /* 🔥 내용 넘침 방지 */
+    }
+
+    .edit-field {
+      width: 80%;
+      border: 0;
+      background: transparent;
+      font: inherit;
+      text-align: inherit;
+      padding: 0;
+    }
+
+    .data-panel {
+      width: min(100%, var(--board-max-width));
+      display: flex;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .data-box {
+      width: 100%;
+      padding: 13px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid #d5d5d5;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .data-panel h2,
+    .help-panel h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+    }
+
+    .mapping-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(var(--mapping-card-min), var(--mapping-card-max)));
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .mapping-card {
+      border: 1px solid #cfcfcf;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+      width: 100%;
+      min-width: var(--mapping-card-min);
+      max-width: var(--mapping-card-max);
+      margin: 0;
+    }
+
+    .mapping-card h3 {
+      margin: 0;
+      padding: 8px 10px;
+      font-size: 15px;
+      background: var(--greenish);
+      border-bottom: 1px solid #cfcfcf;
+    }
+
+    .mapping-card-head {
+      position: relative;
+      padding: 6px 8px 4px;
+      background: var(--greenish);
+      border-bottom: 1px solid #cfcfcf;
+      height: 68px;
+      min-height: 50px;
+    }
+
+    .mapping-card-head h3 {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      min-width: 0;
+      display: block;
+      font-weight: 400;
+      font-size: clamp(10px, 1.2vw, 13.5px);
+      padding-right: 52px;
+    }
+
+    .mapping-region {
+      display: inline-block;
+      margin-left: -6px;
+      margin-top: 0px;
+      text-align: center;
+      width: var(--mapping-region-width, 100px); /* ⭐ 숫자로 조절 */
+      height: var(--mapping-region-height, auto); /* ⭐ 높이 조절 */
+      min-width: 0;
+      max-width: none;
+      font-size: clamp(15px, 1.8vw, 14.5px);
+      font-weight: 400;
+      color: #444;
+      line-height: 1.5;
+      vertical-align: top;
+    }
+
+    .mapping-stop {
+      display: inline-block;
+      margin-left: -6px;
+      text-align: center;
+      width: var(--mapping-stop-width, 120px); /* ⭐ 숫자로 조절 */
+      height: var(--mapping-stop-height, auto); /* ⭐ 높이 조절 */
+      margin-top: 1px;
+      font-size: clamp(14px, 1.2vw, 15px);
+      line-height: 1.2em;
+      min-height: 2.4em;
+      overflow: hidden;
+      font-weight: 400;
+      white-space: normal;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+
+    .mapping-delete-btn {
+      position: absolute;
+      top: 1px;
+      right: 0px;
+      border: 1px solid #cc0000;
+      background: #fff2f2;
+      color: #b30000;
+      font-weight: 500;
+      border-radius: 8px;
+      padding: 3px 7px;
+      font-size: 12px;
+      cursor: pointer;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+
+    .mapping-card textarea {
+      width: 100%;
+      min-width: 130px;
+      min-height: 78px;
+      border: 0;
+      resize: vertical;
+      padding: 10px;
+      font: inherit;
+      line-height: 1.55;
+      background: #fffffb;
+    }
+
+    @media (max-width: 1200px) {
+      .mapping-grid {
+        grid-template-columns: repeat(auto-fit, minmax(170px, max-content));
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .mapping-grid {
+        grid-template-columns: repeat(auto-fit, minmax(155px, max-content));
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .mapping-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, max-content));
+      }
+    }
+
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.28);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+    }
+
+    .confirm-overlay.show {
+      display: flex;
+    }
+
+    .confirm-box {
+      width: min(92vw, 360px);
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+      border: 1px solid #d6d6d6;
+      overflow: hidden;
+    }
+
+    .confirm-title {
+      padding: 14px 16px;
+      font-size: 17px;
+      font-weight: 800;
+      background: #f7f7f7;
+      border-bottom: 1px solid #e2e2e2;
+    }
+
+    .confirm-message {
+      padding: 18px 16px;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .confirm-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 0 16px 16px;
+    }
+
+    .confirm-btn {
+      border: 1px solid #a9a9a9;
+      background: #fff;
+      padding: 9px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    #mappingInsertOkBtn,
+    #insertOkBtn {
+      background: #0b6bff;
+      border-color: #0b6bff;
+      color: #fff;
+    }
+
+    #mappingInsertOkBtn:hover,
+    #insertOkBtn:hover {
+      background: #0958d1;
+    }
+
+    .confirm-btn.danger {
+      background: #d80000;
+      border-color: #d80000;
+      color: #fff;
+    }
+
+    .insert-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.28);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 20px;
+    }
+
+    .insert-overlay.show {
+      display: flex;
+    }
+
+    .insert-box {
+      width: min(92vw, 420px);
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+      border: 1px solid #d6d6d6;
+      overflow: hidden;
+    }
+
+    .insert-title {
+      padding: 14px 16px;
+      font-size: 17px;
+      font-weight: 800;
+      background: #f7f7f7;
+      border-bottom: 1px solid #e2e2e2;
+    }
+
+    .insert-body {
+      padding: 13px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .insert-body label {
+      font-size: 14px;
+      font-weight: 700;
+      display: grid;
+      gap: 6px;
+    }
+
+    .insert-body select,
+    .insert-body input {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid #b8b8b8;
+      border-radius: 10px;
+      font: inherit;
+    }
+
+    .insert-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 0 16px 16px;
+    }
+
+    .help-panel {
+      padding: 13px;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .muted {
+      color: #666;
+    }
+
+    .admin-only {
+      display: none !important;
+    }
+
+    .admin-only-block {
+      display: none;
+    }
+
+    /* 🔥 관리자모드에서 특정 UI 숨김 */
+    .hide-in-admin {
+      display: flex;
+    }
+
+    body.admin-visible .hide-in-admin {
+      display: none !important;
+    }
+
+    body.admin-visible .admin-only {
+      display: inline-flex !important;
+    }
+
+    body.admin-visible .admin-only-block {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div id="boardWrap" class="board-wrap">
+      <table id="routeBoard" class="route-board">
+        <colgroup>
+          <col><col><col><col><col><col><col>
+        </colgroup>
+        <thead>
+          <tr>
+            <th colspan="7" class="title-cell">
+              <span class="full-title"></span> 탑승 위치/시간
+            </th>
+          </tr>
+          <tr>
+            <th class="subhead">지역</th>
+            <th class="subhead">승차 지점</th>
+            <th class="subhead">이동<br>시간</th>
+            <th class="subhead">승차시간</th>
+            <th class="subhead">탑승자 명단</th>
+            <th class="subhead">인원</th>
+            <th id="deleteHeader" class="subhead"></th>
+          </tr>
+        </thead>
+        <tbody id="routeTbody"></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" class="total-label">
+              <textarea id="footerNoteInput" class="inline-editor" rows="2"></textarea>
+            </td>
+            <td class="total-title">총 인원</td>
+            <td class="total-count"><span id="totalCount">0</span> 명</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar-box">
+        <div class="toolbar-left">
+          <button id="adminAllBtn" class="btn">관리자</button>
+          <button id="adminToggle" class="btn btn-admin admin-only">편집 활성화</button>
+          <button id="changePasswordBtn" class="btn" hidden>비번변경</button>
+          <button id="resetPasswordBtn" class="btn">비번초기화</button>
+          <button id="addRowBtn" class="btn admin-only">탑승장 행 추가</button>
+          <button id="deleteModeBtn" class="btn admin-only">행삭제모드</button>
+          <button id="saveBtn" class="btn admin-only">내용저장</button>
+          <button id="resetBtn" class="btn admin-only">명단초기화</button>
+          <button id="importNamesBtn" class="btn">이름가져오기</button>
+          <button id="captureToolbarBtn" class="btn">캡쳐</button>
+          <button id="captureScheduleBtn" class="btn">시간표캡쳐</button>
+        </div>
+        <div class="toolbar-right"></div>
+      </div>
+    </div>
+
+    <div class="data-panel admin-only-block">
+      <div class="data-box">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+          <h2 style="margin:0;">승차장 명단 데이터</h2>
+          <div class="toolbar-right hide-in-admin">
+            <button id="addMappingBtn" class="btn admin-only">탑승명단 칸 추가</button>
+            <label class="limit-wrap">
+              최대 가로폭(px)
+              <input id="maxWidthInput" type="number" min="700" max="2200" step="10" value="860" />
+            </label>
+            <span id="modeText" class="muted">현재 모드: 보기 전용</span>
+          </div>
+        </div>
+        <div class="muted" style="margin-bottom:12px;">관리자 편집 모드에서 아래 카드도 추가하고 수정할 수 있습니다. 이 영역은 위의 탑승자 명단과 완전히 분리 저장됩니다.</div>
+        <div id="mappingGrid" class="mapping-grid"></div>
+        <div style="margin-top:16px; border-top:1px solid #d8d8d8; padding-top:14px;">
+          <h3 style="margin:0 0 10px; font-size:17px;">가져온 이름 보관함</h3>
+          <div class="muted" style="margin-bottom:10px;">메인 UI의 탑승자 명단에서 가져온 이름을 아래 칸에 보관합니다.</div>
+          <textarea id="importedNamesBox" class="inline-editor" rows="6" style="width:100%; min-height:120px; border:1px solid #c8c8c8; border-radius:10px; padding:10px; background:#fffdf6;"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirmOverlay" class="confirm-overlay">
+    <div class="confirm-box">
+      <div class="confirm-title">행 삭제 확인</div>
+      <div id="confirmMessage" class="confirm-message">선택한 행을 삭제할까요?</div>
+      <div class="confirm-actions">
+        <button id="confirmCancelBtn" type="button" class="confirm-btn">취소</button>
+        <button id="confirmOkBtn" type="button" class="confirm-btn danger">삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="insertOverlay" class="insert-overlay">
+    <div class="insert-box">
+      <div class="insert-title">탑승장 행추가</div>
+      <div class="insert-body">
+        <label>
+          추가 위치
+          <select id="insertPositionSelect"></select>
+        </label>
+        <label>
+          지역 선택
+          <select id="insertRegionSelect"></select>
+        </label>
+        <label>
+          새 지역 직접입력
+          <input id="insertRegionInput" type="text" value="" placeholder="직접 입력 시 여기에 입력" />
+        </label>
+        <label>
+          승차 지점
+          <input id="insertStopInput" type="text" value="새 정류장" />
+        </label>
+        <label>
+          이동시간
+          <input id="insertMoveInput" type="text" value="0:00" />
+        </label>
+        <label>
+          승차시간
+          <input id="insertRideInput" type="text" value="0:00" />
+        </label>
+      </div>
+      <div class="insert-actions">
+        <button id="insertCancelBtn" type="button" class="confirm-btn">취소</button>
+        <button id="insertOkBtn" type="button" class="confirm-btn">추가</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mappingInsertOverlay" class="insert-overlay">
+    <div class="insert-box">
+      <div class="insert-title">탑승위치 명단 추가</div>
+      <div class="insert-body">
+        <label>
+          추가 위치
+          <select id="mappingPositionSelect"></select>
+        </label>
+        <label>
+          제목
+          <input id="mappingTitleInput" type="text" value="" placeholder="명단 제목 입력" />
+        </label>
+      </div>
+      <div class="insert-actions">
+        <button id="mappingInsertCancelBtn" type="button" class="confirm-btn">취소</button>
+        <button id="mappingInsertOkBtn" type="button" class="confirm-btn">추가</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="passwordOverlay" class="password-overlay">
+    <div class="password-box">
+      <div id="passwordDialogTitle" class="password-title">비밀번호 입력</div>
+      <div class="password-body">
+        <label>
+          비밀번호
+          <input id="passwordDialogInput" type="password" autocomplete="current-password" />
+        </label>
+        <div id="passwordDialogExtra" style="display:none; gap:10px;">
+          <label>
+            새 비밀번호
+            <input id="newPasswordInput" type="password" autocomplete="new-password" />
+          </label>
+          <label>
+            새 비밀번호 확인
+            <input id="confirmNewPasswordInput" type="password" autocomplete="new-password" />
+          </label>
+        </div>
+        <div id="passwordDialogError" class="password-error"></div>
+      </div>
+      <div class="password-actions">
+        <button id="passwordCancelBtn" type="button" class="confirm-btn">취소</button>
+        <button id="passwordOkBtn" type="button" class="confirm-btn">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="duplicateNameOverlay" class="insert-overlay">
+    <div class="insert-box">
+      <div class="insert-title">동명인 선택</div>
+      <div class="insert-body">
+        <div id="duplicateNameMessage" class="muted">같은 이름이 여러 승차지점에 있습니다. 등록할 위치를 선택하세요.</div>
+        <label>
+          등록 위치 선택
+          <select id="duplicateNameSelect"></select>
+        </label>
+      </div>
+      <div class="insert-actions">
+        <button id="duplicateNameSkipBtn" type="button" class="confirm-btn">건너뛰기</button>
+        <button id="duplicateNameOkBtn" type="button" class="confirm-btn">등록</button>
+      </div>
+    </div>
+  </div>
+
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <script>
+    const STORAGE_KEY = "bus-route-layout-v1";
+    const MAPPING_STORAGE_KEY = "bus-route-mapping-v1";
+    const IMPORTED_NAMES_STORAGE_KEY = "bus-route-imported-names-v1";
+    const ADMIN_PASSWORD_STORAGE_KEY = "bus-route-admin-password-v1";
+    const DEFAULT_ADMIN_PASSWORD = "1234";
+    const SYSTEM_RECOVERY_KEY = "RkZGRkZGRkZG";
+
+    const FIREBASE_CONFIG = {
+      // Firebase 콘솔 > 프로젝트 설정 > 내 앱 > SDK 설정 및 구성 > 구성 값 붙여넣기
+      // 아래 값을 본인 Firebase 프로젝트 실제 값으로 바꿔주세요.
+      apiKey: "AIzaSyBbN8CF35V00kAQzVCZoZoonXDGKTqPfZA",
+      authDomain: "bus-set-no1.firebaseapp.com",
+      databaseURL: "https://bus-set-no1-default-rtdb.asia-southeast1.firebasedatabase.app/",
+      projectId: "bus-set-no1",
+      
+    }
+
+    const defaultData = {
+      titleFull: ' ',
+      footerNote: "",
+      rows: [
+        { region: "청라", stop: "동양 엔파트", move: "", ride: "5:23", names: "", count: 0, note: "" },
+        { region: "청라", stop: "한신더휴 건너편", move: "0:04", ride: "5:27", names: "", count: 0, note: "" },
+        { region: "청라", stop: "대광 로제비앙 4거리", move: "0:03", ride: "5:30", names: "", count: 0, note: "" },
+        { region: "청라", stop: "제일 풍경채 2차 횡단보도", move: "0:08", ride: "5:38", names: "", count: 0, note: "" },
+        { region: "경서동", stop: "푸르지오", move: "0:06", ride: "5:44", names: "", count: 0, note: "" },
+        { region: "경서동", stop: "태평아파트", move: "0:04", ride: "5:48", names: "", count: 0, note: "" },
+        { region: "경서동", stop: "아시아드 대광", move: "0:03", ride: "5:51", names: "", count: 0, note: "" },
+        { region: "검암1지구", stop: "서곶 지구대", move: "0:03", ride: "5:54", names: "", count: 0, note: "" },
+        { region: "검암1지구", stop: "서해그랑블 앞", move: "0:06", ride: "6:00", names: "", count: 0, note: "" },
+        { region: "검암2지구", stop: "에스알 마트 앞", move: "0:07", ride: "6:07", names: "", count: 0, note: "" },
+        { region: "공촌동", stop: "공촌 4거리", move: "0:08", ride: "6:15", names: "", count: 0, note: "" },
+        { region: "계산동", stop: "천년뷔페 앞", move: "0:10", ride: "6:25", names: "", count: 0, note: "" },
+        { region: "용종동", stop: "용종마을", move: "0:05", ride: "6:30", names: "", count: 0, note: "" }
+      ],
+      mapping: [
+        { title: "청라|동양 엔파트", people: "곽중섭 김연숙" },
+        { title: "청라|한신더휴 건너편", people: "이순표 백순이 김경심 홍종숙 김근배 김미점 " },
+        { title: "청라|대광 로제비앙 4거리", people: "박광수" },
+        { title: "청라|제일 풍경채 2차 횡단보도", people: "정래훈" },
+        { title: "경서동|푸르지오", people: "김진권" },
+        { title: "경서동|태평아파트", people: "김성기 유순애 김민숙" },
+        { title: "경서동|아시아드 대광", people: "방경호 최정아 박산식 전기준 김성환 김영태 최선화 박영석 김성기 유순애 김민숙" },
+        { title: "검암1지구|서곶 지구대", people: "윤미숙" },
+        { title: "검암1지구|서해그랑블 앞", people: "권오복 정순자 권재석 윤순찬 소현미 한경문 최미순 이선례 김금숙 김미정 이주일 김행숙 장오섭 신남희 정명구 김옥희 김순애 이명훈" },
+        { title: "검암2지구|에스알 마트 앞", people: "강경배 김대옥 정석화 최경화 김미옥 변광철 임선옥 박귀례 양은미 위임자 박정란 윤분순 이설 정영애 허영지 김금순 김진경 김경애 신승원 강광래 전원석 장화순 이하은 이승자 황효진 김순애 신대경 정기현 함인자 이수헌 송혜숙" },
+        { title: "공촌동|공촌 4거리", people: "이미영 박창복 서민자 박수진 최광주 이상욱 김소정 김언희 장순임" },
+        { title: "계산동|천년뷔페 앞", people: "박현규 이경순 배금열 한연석 장기산 오흥주 최경임 김정희 김옥란 이영옥 김인옥 염홍숙 이기춘 김현숙 이명순 이화연 정명옥 이옥선 정민숙 김미자 우복님 김종애 이영순 김영애 이순열 정미자 김기현 조영도 아영" },
+        { title: "용종동|용종마을", people: "박영순 이수헌 정상윤" }
+      ],
+      importedNames: ""
+    };
+
+    function parseDocumentTitleParts() {
+      const rawTitle = String(document.title || "").trim();
+      if (!rawTitle) return null;
+      return { full: rawTitle };
+    }
+
+    function syncStateTitleFromDocument() {
+      const parsed = parseDocumentTitleParts();
+      if (!parsed) return;
+      state.titleFull = parsed.full;
+    }
+
+    function syncDocumentTitleFromState() {
+      const full = String(state.titleFull || defaultData.titleMonth || "").trim();
+      document.title = full;
+    }
+
+    let state = loadData();
+    let adminMode = false;
+    let deleteMode = false;
+
+    const boardWrap = document.getElementById("boardWrap");
+    const routeTbody = document.getElementById("routeTbody");
+    const mappingGrid = document.getElementById("mappingGrid");
+    const adminToggle = document.getElementById("adminToggle");
+    const modeText = document.getElementById("modeText");
+    const saveBtn = document.getElementById("saveBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const importNamesBtn = document.getElementById("importNamesBtn");
+    const captureToolbarBtn = document.getElementById("captureToolbarBtn");
+    const captureScheduleBtn = document.getElementById("captureScheduleBtn");
+    const resetPasswordBtn = document.getElementById("resetPasswordBtn");
+    const changePasswordBtn = document.getElementById("changePasswordBtn");
+    const adminAllBtn = document.getElementById("adminAllBtn");
+    const deleteModeBtn = document.getElementById("deleteModeBtn");
+    const addRowBtn = document.getElementById("addRowBtn");
+    const addMappingBtn = document.getElementById("addMappingBtn");
+    const maxWidthInput = document.getElementById("maxWidthInput");
+    const footerNoteInput = document.getElementById("footerNoteInput");
+    const importedNamesBox = document.getElementById("importedNamesBox");
+    
+    const totalCount = document.getElementById("totalCount");
+    const deleteHeader = document.getElementById("deleteHeader");
+    const confirmOverlay = document.getElementById("confirmOverlay");
+    const confirmMessage = document.getElementById("confirmMessage");
+    const confirmCancelBtn = document.getElementById("confirmCancelBtn");
+    const confirmOkBtn = document.getElementById("confirmOkBtn");
+    const insertOverlay = document.getElementById("insertOverlay");
+    const insertPositionSelect = document.getElementById("insertPositionSelect");
+    const insertRegionSelect = document.getElementById("insertRegionSelect");
+    const insertRegionInput = document.getElementById("insertRegionInput");
+    const insertStopInput = document.getElementById("insertStopInput");
+    const insertMoveInput = document.getElementById("insertMoveInput");
+    const insertRideInput = document.getElementById("insertRideInput");
+    const insertCancelBtn = document.getElementById("insertCancelBtn");
+    const insertOkBtn = document.getElementById("insertOkBtn");
+    const mappingInsertOverlay = document.getElementById("mappingInsertOverlay");
+    const mappingPositionSelect = document.getElementById("mappingPositionSelect");
+    const mappingTitleInput = document.getElementById("mappingTitleInput");
+    const mappingInsertCancelBtn = document.getElementById("mappingInsertCancelBtn");
+    const mappingInsertOkBtn = document.getElementById("mappingInsertOkBtn");
+    const passwordOverlay = document.getElementById("passwordOverlay");
+    const passwordDialogTitle = document.getElementById("passwordDialogTitle");
+    const passwordDialogInput = document.getElementById("passwordDialogInput");
+    const passwordDialogExtra = document.getElementById("passwordDialogExtra");
+    const newPasswordInput = document.getElementById("newPasswordInput");
+    const confirmNewPasswordInput = document.getElementById("confirmNewPasswordInput");
+    const passwordDialogError = document.getElementById("passwordDialogError");
+    const passwordCancelBtn = document.getElementById("passwordCancelBtn");
+    const passwordOkBtn = document.getElementById("passwordOkBtn");
+    const duplicateNameOverlay = document.getElementById("duplicateNameOverlay");
+    const duplicateNameMessage = document.getElementById("duplicateNameMessage");
+    const duplicateNameSelect = document.getElementById("duplicateNameSelect");
+    const duplicateNameSkipBtn = document.getElementById("duplicateNameSkipBtn");
+    const duplicateNameOkBtn = document.getElementById("duplicateNameOkBtn");
+
+    let pendingMappingDeleteIndex = null;
+    let pendingDeleteIndex = null;
+    let pendingInsertIndex = null;
+    let adminPassword = loadAdminPassword();
+    let passwordDialogMode = null;
+    let duplicateNameQueue = [];
+    let duplicateNameResolver = null;
+
+    function safeClone(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function decodeRecoveryCode() {
+      return atob(SYSTEM_RECOVERY_KEY)
+        .split("")
+        .map((ch) => String.fromCharCode(ch.charCodeAt(0) - 13))
+        .join("");
+    }
+
+    function loadAdminPassword() {
+      try {
+        return localStorage.getItem(ADMIN_PASSWORD_STORAGE_KEY) || DEFAULT_ADMIN_PASSWORD;
+      } catch (e) {
+        return DEFAULT_ADMIN_PASSWORD;
+      }
+    }
+
+    function saveAdminPassword(password) {
+      adminPassword = String(password || DEFAULT_ADMIN_PASSWORD);
+      localStorage.setItem(ADMIN_PASSWORD_STORAGE_KEY, adminPassword);
+    }
+
+    function applyStopColumnSizeInputs() {
+      const styles = getComputedStyle(document.documentElement);
+      const minValue = styles.getPropertyValue("--col-stop-min").trim() || "120px";
+      const maxValue = styles.getPropertyValue("--col-stop-max").trim() || "167px";
+      const fluidValue = styles.getPropertyValue("--col-stop-fluid").trim() || "18vw";
+
+      document.documentElement.style.setProperty("--col-stop-min", minValue);
+      document.documentElement.style.setProperty("--col-stop-max", maxValue);
+      document.documentElement.style.setProperty("--col-stop-fluid", fluidValue);
+    }
+
+    function updateAdminUi() {
+      const adminVisible = document.body.classList.contains("admin-visible");
+      adminAllBtn.classList.toggle("active", adminVisible);
+      adminAllBtn.textContent = adminVisible ? "관리자종료" : "관리자";
+      adminToggle.classList.toggle("active", adminMode);
+      adminToggle.textContent = adminMode ? "편집 비활성화" : "편집 활성화";
+      modeText.textContent = `현재 모드: ${adminMode ? "관리자 편집" : "보기 전용"}${deleteMode ? " / 행 삭제 모드" : ""}`;
+      document.body.classList.toggle("edit-on", adminMode);
+      if (deleteHeader) deleteHeader.textContent = adminMode ? "삭제" : "";
+      if (changePasswordBtn) changePasswordBtn.hidden = !adminVisible;
+      // 🔒 관리자모드에서는 비밀번호 초기화 버튼 숨김
+      if (resetPasswordBtn) resetPasswordBtn.hidden = adminVisible;
+    }
+
+    function closePasswordDialog() {
+      passwordOverlay.classList.remove("show");
+      passwordDialogMode = null;
+      passwordDialogInput.value = "";
+      newPasswordInput.value = "";
+      confirmNewPasswordInput.value = "";
+      passwordDialogError.textContent = "";
+      passwordDialogExtra.style.display = "none";
+    }
+
+    function closeDuplicateNameDialog() {
+      duplicateNameOverlay.classList.remove("show");
+      duplicateNameSelect.innerHTML = "";
+    }
+
+    function openDuplicateNameDialog(name, options) {
+      duplicateNameMessage.textContent = `"${name}" 이름이 등록 데이터에 없습니다. 등록할 위치를 선택하세요.`;
+      duplicateNameSelect.innerHTML = "";
+
+      options.forEach((option, idx) => {
+        const el = document.createElement("option");
+        el.value = String(idx);
+        el.textContent = `${option.region} / ${option.stop}`;
+        duplicateNameSelect.appendChild(el);
+      });
+
+      duplicateNameOverlay.classList.add("show");
+      setTimeout(() => duplicateNameSelect.focus(), 0);
+    }
+
+    function requestDuplicateNameChoice(name, options) {
+      return new Promise((resolve) => {
+        duplicateNameResolver = resolve;
+        openDuplicateNameDialog(name, options);
+      });
+    }
+
+    function addNameToRow(rowIndex, name) {
+      const currentNames = parseNameTokens(state.rows[rowIndex]?.names || "");
+      if (!currentNames.includes(name)) currentNames.push(name);
+      state.rows[rowIndex].names = currentNames.join(" ");
+      state.rows[rowIndex].count = currentNames.length;
+    }
+
+    function openPasswordDialog(mode) {
+      passwordDialogMode = mode;
+      passwordDialogError.textContent = "";
+      passwordDialogInput.value = "";
+      newPasswordInput.value = "";
+      confirmNewPasswordInput.value = "";
+
+      if (mode === "admin-login") {
+        passwordDialogTitle.textContent = "관리자 비밀번호 입력";
+        passwordDialogExtra.style.display = "none";
+      } else if (mode === "master-reset") {
+        passwordDialogTitle.textContent = "복구 코드 입력";
+        passwordDialogExtra.style.display = "none";
+      } else if (mode === "change-password") {
+        passwordDialogTitle.textContent = "관리자 비번변경";
+        passwordDialogExtra.style.display = "grid";
+      }
+
+      passwordOverlay.classList.add("show");
+      setTimeout(() => passwordDialogInput.focus(), 0);
+    }
+
+    function submitPasswordDialog() {
+      const entered = passwordDialogInput.value.trim();
+
+      if (passwordDialogMode === "admin-login") {
+        if (entered !== adminPassword) {
+          passwordDialogError.textContent = "비밀번호가 올바르지 않습니다.";
+          passwordDialogInput.focus();
+          passwordDialogInput.select();
+          return;
+        }
+        document.body.classList.add("admin-visible");
+        updateAdminUi();
+        applyStopColumnSizeInputs();
+        renderBoard();
+        renderMapping();
+        resizeAllTextareas();
+        flashButton(adminAllBtn);
+        closePasswordDialog();
+        return;
+      }
+
+      if (passwordDialogMode === "master-reset") {
+        if (entered !== decodeRecoveryCode()) {
+          passwordDialogError.textContent = "복구 코드가 올바르지 않습니다.";
+          passwordDialogInput.focus();
+          passwordDialogInput.select();
+          return;
+        }
+        saveAdminPassword(DEFAULT_ADMIN_PASSWORD);
+        alert("관리자 비밀번호가 기본값 1234로 초기화되었습니다.");
+        flashButton(resetPasswordBtn);
+        closePasswordDialog();
+        return;
+      }
+
+      if (passwordDialogMode === "change-password") {
+        if (entered !== adminPassword) {
+          passwordDialogError.textContent = "현재 비밀번호가 올바르지 않습니다.";
+          passwordDialogInput.focus();
+          passwordDialogInput.select();
+          return;
+        }
+        if (!newPasswordInput.value.trim()) {
+          passwordDialogError.textContent = "새 비밀번호를 비워둘 수 없습니다.";
+          newPasswordInput.focus();
+          return;
+        }
+        if (newPasswordInput.value !== confirmNewPasswordInput.value) {
+          passwordDialogError.textContent = "새 비밀번호 확인이 일치하지 않습니다.";
+          confirmNewPasswordInput.focus();
+          return;
+        }
+        saveAdminPassword(newPasswordInput.value);
+        alert("관리자 비밀번호가 변경되었습니다.");
+        flashButton(changePasswordBtn);
+        closePasswordDialog();
+      }
+    }
+
+    function loadData() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const mappingSaved = localStorage.getItem(MAPPING_STORAGE_KEY);
+        const importedNamesSaved = localStorage.getItem(IMPORTED_NAMES_STORAGE_KEY);
+        const base = saved ? JSON.parse(saved) : safeClone(defaultData);
+        const mapping = mappingSaved ? JSON.parse(mappingSaved) : safeClone(defaultData.mapping);
+
+        if (!Array.isArray(base.rows)) base.rows = safeClone(defaultData.rows);
+        base.mapping = Array.isArray(mapping) ? mapping : safeClone(defaultData.mapping);
+        base.importedNames = typeof importedNamesSaved === "string"
+          ? importedNamesSaved
+          : String(base.importedNames || defaultData.importedNames || "");
+
+        const parsed = parseDocumentTitleParts();
+        base.titleFull = parsed?.full || String(base.titleFull || defaultData.titleFull || document.title || "").trim();
+        return base;
+      } catch (e) {
+        const fallback = safeClone(defaultData);
+        const parsed = parseDocumentTitleParts();
+        fallback.titleFull = parsed?.full || String(fallback.titleFull || document.title || "").trim();
+        return fallback;
+      }
+    }
+
+    function saveData() {
+      if (document.body.classList.contains("admin-visible")) {
+        const syncLength = Math.min(state.rows.length, state.mapping.length);
+        for (let i = 0; i < syncLength; i += 1) {
+          const parts = String(state.mapping[i]?.title || "").split("|");
+          const regionText = (parts[0] || "").trim();
+          const stopText = (parts[1] || "").trim();
+
+          if (state.rows[i]) {
+            if (regionText) state.rows[i].region = regionText;
+            if (stopText) state.rows[i].stop = stopText;
+          }
+        }
+        renderBoard();
+      }
+
+      const payload = {
+        titleFull: state.titleFull,
+        footerNote: state.footerNote,
+        rows: state.rows
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      localStorage.setItem(MAPPING_STORAGE_KEY, JSON.stringify(state.mapping));
+      localStorage.setItem(IMPORTED_NAMES_STORAGE_KEY, String(state.importedNames || ""));
+      flashButton(saveBtn);
+    }
+
+    function flashButton(button) {
+      const originalBg = button.style.background;
+      const originalColor = button.style.color;
+      button.style.background = "#25b44b";
+      button.style.color = "#fff";
+      setTimeout(() => {
+        button.style.background = originalBg;
+        button.style.color = originalColor;
+      }, 550);
+    }
+
+    function groupRows(rows) {
+      const grouped = [];
+      let i = 0;
+
+      while (i < rows.length) {
+        const current = rows[i];
+        let span = 1;
+
+        while (i + span < rows.length && rows[i + span].region === current.region) {
+          span += 1;
+        }
+
+        for (let offset = 0; offset < span; offset += 1) {
+          grouped.push({
+            ...rows[i + offset],
+            regionSpan: offset === 0 ? span : 0,
+            showRegion: offset === 0,
+            sourceIndex: i + offset
+          });
+        }
+
+        i += span;
+      }
+
+      return grouped;
+    }
+
+    function renderBoard() {
+      routeTbody.innerHTML = "";
+      const groupedRows = groupRows(state.rows);
+
+      let renderIndex = 0;
+      groupedRows.forEach((row) => {
+        const index = row.sourceIndex;
+        const is29th = renderIndex === 28; // 화면 기준 29번째
+        const tr = document.createElement("tr");
+        renderIndex++;
+        
+
+        if (row.showRegion) {
+          const tdRegion = document.createElement("td");
+          tdRegion.className = "region";
+          tdRegion.rowSpan = row.regionSpan;
+          tdRegion.textContent = row.region;
+          tdRegion.contentEditable = adminMode;
+          tdRegion.addEventListener("blur", () => {
+            const regionText = tdRegion.textContent.trim() || "구역";
+            const oldRegion = state.rows[index].region;
+            state.rows.forEach((r) => {
+              if (r.region === oldRegion) r.region = regionText;
+            });
+            renderBoard();
+            renderMapping();
+          });
+          tdRegion.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              tdRegion.blur();
+            }
+          });
+          tr.appendChild(tdRegion);
+        }
+
+        const stopTd = makeEditableCell(row.stop, "stop-name", adminMode, (value) => {
+          state.rows[index].stop = value;
+          syncMappingTitle(index, value, "stop");
+        });
+
+        const isEmptyNames = !row.names || !row.names.trim();
+        stopTd.style.color = isEmptyNames ? "#ddd" : "";
+        tr.appendChild(stopTd);
+
+        const moveTd = makeEditableCell(row.move, "time-small", adminMode, (value) => {
+          state.rows[index].move = value;
+
+          const lastIndex = state.rows.length - 1;
+          const lastRideMinutes = parseTimeToMinutes(state.rows[lastIndex] && state.rows[lastIndex].ride);
+
+          if (lastRideMinutes !== null) {
+            recalculateRideTimesFromBottom(lastIndex);
+          } else if (index !== lastIndex) {
+            const currentRecalc = deriveInsertedRideTime(index);
+            if (currentRecalc) {
+              state.rows[index].ride = currentRecalc;
+            }
+            if (index > 0) {
+              const curRide = parseTimeToMinutes(state.rows[index].ride);
+              const curMove = parseDurationToMinutes(state.rows[index].move);
+              if (curRide !== null) {
+                state.rows[index - 1].ride = formatMinutesToTime(curRide - curMove);
+              }
+            }
+          }
+
+          renderBoard();
+        });
+        moveTd.style.color = isEmptyNames ? "#000" : "";
+        tr.appendChild(moveTd);
+
+        const rideTd = makeEditableCell(row.ride, "time-big", adminMode, (value) => {
+          state.rows[index].ride = value;
+          const lastIndex = state.rows.length - 1;
+
+          if (index === lastIndex) {
+            recalculateRideTimesFromBottom(lastIndex);
+          } else if (isBaseCalcRow(index)) {
+            recalculateRideTimesFromBottom(index);
+          }
+
+          renderBoard();
+        });
+        rideTd.style.color = isEmptyNames ? "#ddd" : "";
+        tr.appendChild(rideTd);
+
+        tr.appendChild(makeEditableTextAreaCell(row.names, "names-cell", adminMode, (value) => {
+          state.rows[index].names = normalizeNames(value);
+          state.rows[index].count = countPeople(state.rows[index].names);
+          updateSummary();
+        }));
+
+        const countTd = makeEditableCell(String(row.count), "count-cell", adminMode, (value) => {
+          const num = Number(String(value).replace(/[^0-9]/g, "")) || 0;
+          state.rows[index].count = num;
+          updateSummary();
+        }, "input");
+
+        // 🔥 0일 때는 숫자만 숨기고, 칸 배경색은 그대로 유지
+        const countInput = countTd.querySelector("input");
+        countTd.style.background = "var(--beige)";
+        if (Number(row.count) === 0) {
+          if (countInput) {
+            countInput.style.color = "transparent";
+            countInput.style.caretColor = "transparent";
+          } else {
+            countTd.style.color = "transparent";
+          }
+        } else {
+          if (countInput) {
+            countInput.style.color = "inherit";
+            countInput.style.caretColor = "auto";
+          } else {
+            countTd.style.color = "inherit";
+          }
+        }
+
+        tr.appendChild(countTd);
+
+        const deleteCell = document.createElement("td");
+        deleteCell.className = "row-delete-cell";
+
+        if (adminMode) {
+          const addBeforeBtn = document.createElement("button");
+          addBeforeBtn.type = "button";
+          addBeforeBtn.className = "add-row-inline-btn";
+          addBeforeBtn.textContent = "↑";
+          addBeforeBtn.setAttribute("data-insert-before-index", String(index));
+          deleteCell.appendChild(addBeforeBtn);
+
+          const addBtn = document.createElement("button");
+          addBtn.type = "button";
+          addBtn.className = "add-row-inline-btn";
+          addBtn.textContent = "+";
+          addBtn.setAttribute("data-insert-after-index", String(index));
+          addBtn.style.marginLeft = "4px";
+          deleteCell.appendChild(addBtn);
+        }
+
+        if (deleteMode) {
+          const deleteBtn = document.createElement("button");
+          deleteBtn.type = "button";
+          deleteBtn.className = "delete-row-btn";
+          deleteBtn.textContent = "삭제";
+          deleteBtn.setAttribute("data-row-index", String(index));
+          if (adminMode) deleteBtn.style.marginLeft = "6px";
+          deleteCell.appendChild(deleteBtn);
+        }
+        tr.appendChild(deleteCell);
+
+                
+
+        routeTbody.appendChild(tr);
+      });
+
+      document.querySelector(".full-title").textContent = state.titleFull || document.title;
+      syncDocumentTitleFromState();
+      footerNoteInput.value = state.footerNote || "";
+      footerNoteInput.readOnly = false;
+      updateSummary();
+      applyTitleEditing();
+      requestAnimationFrame(resizeAllTextareas);
+    }
+
+    function makeEditableCell(value, className, editable, onInput, mode = "contenteditable") {
+      const td = document.createElement("td");
+      td.className = className;
+
+      if (mode === "input") {
+        const input = document.createElement("input");
+        input.className = "edit-field";
+        input.value = value;
+        input.readOnly = !editable;
+
+        const commit = () => onInput(input.value);
+        input.addEventListener("change", commit);
+        input.addEventListener("blur", commit);
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            input.blur();
+          }
+        });
+
+        td.appendChild(input);
+      } else {
+        td.textContent = value;
+        td.contentEditable = editable;
+        td.addEventListener("blur", () => onInput(td.textContent.trim()));
+        td.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            td.blur();
+          }
+        });
+      }
+      return td;
+    }
+
+    function makeEditableTextAreaCell(value, className, editable, onInput) {
+      const td = document.createElement("td");
+      td.className = className;
+
+      const textarea = document.createElement("textarea");
+      textarea.className = "inline-editor";
+      textarea.value = String(value || "");
+      textarea.readOnly = !editable;
+      textarea.rows = 1;
+
+      const normalizeTextareaValue = (text) => {
+        const raw = String(text || "");
+        return raw
+          .split(String.fromCharCode(13)).join("")
+          .split(String.fromCharCode(10)).join(" ")
+          .split("  ").join(" ")
+          .trim();
+      };
+
+      const autoResize = () => {
+        textarea.style.height = "auto";
+        textarea.style.height = textarea.scrollHeight + "px";
+      };
+
+      textarea.addEventListener("input", () => {
+        autoResize();
+        onInput(normalizeTextareaValue(textarea.value));
+      });
+
+      textarea.addEventListener("blur", () => {
+        autoResize();
+        onInput(normalizeTextareaValue(textarea.value));
+      });
+
+      textarea.addEventListener("focus", autoResize);
+
+      requestAnimationFrame(autoResize);
+
+      td.appendChild(textarea);
+      return td;
+    }
+
+    function resizeAllTextareas() {
+      const textareas = document.querySelectorAll(".inline-editor");
+      if (!textareas.length) return;
+      textareas.forEach((textarea) => {
+        textarea.style.height = "auto";
+        textarea.style.height = `${textarea.scrollHeight}px`;
+      });
+    }
+
+    function renderMapping() {
+      mappingGrid.innerHTML = "";
+
+      state.mapping.forEach((item, index) => {
+        const card = document.createElement("div");
+        card.className = "mapping-card";
+
+        const head = document.createElement("div");
+        head.className = "mapping-card-head";
+
+        const title = document.createElement("h3");
+        const regionDiv = document.createElement("div");
+        regionDiv.className = "mapping-region";
+        const stopDiv = document.createElement("div");
+        stopDiv.className = "mapping-stop";
+
+        const parts = String(item.title || "").split("|");
+        regionDiv.textContent = parts[0] || "";
+        stopDiv.textContent = parts[1] || "";
+
+        if (adminMode) {
+          regionDiv.contentEditable = true;
+          stopDiv.contentEditable = true;
+
+          const saveTitle = () => {
+            const regionText = regionDiv.textContent.trim();
+            const stopText = stopDiv.textContent.trim();
+            state.mapping[index].title = regionText + "|" + stopText;
+            syncMappingTitle(index, stopText, "mapping");
+          };
+
+          regionDiv.addEventListener("blur", saveTitle);
+          stopDiv.addEventListener("blur", saveTitle);
+
+          regionDiv.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              regionDiv.blur();
+            }
+          });
+
+          stopDiv.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              stopDiv.blur();
+            }
+          });
+        }
+
+        title.appendChild(regionDiv);
+        title.appendChild(stopDiv);
+        head.appendChild(title);
+
+        if (adminMode) {
+          const deleteBtn = document.createElement("button");
+          deleteBtn.type = "button";
+          deleteBtn.className = "mapping-delete-btn";
+          deleteBtn.textContent = "삭제";
+          deleteBtn.setAttribute("data-mapping-delete-index", String(index));
+          head.appendChild(deleteBtn);
+        }
+
+        const textarea = document.createElement("textarea");
+        textarea.value = item.people;
+        textarea.readOnly = !adminMode;
+        textarea.addEventListener("input", () => {
+          state.mapping[index].people = textarea.value;
+        });
+
+        card.appendChild(head);
+        card.appendChild(textarea);
+        mappingGrid.appendChild(card);
+      });
+
+      if (importedNamesBox) {
+        importedNamesBox.value = String(state.importedNames || "");
+        importedNamesBox.readOnly = !adminMode;
+      }
+    }
+
+    function collectNamesFromRows() {
+      const names = [];
+      state.rows.forEach((row) => {
+        const tokens = normalizeNames(row.names).split(/\s+/).filter(Boolean);
+        tokens.forEach((name) => names.push(name));
+      });
+      return names;
+    }
+
+    async function importNamesToStorageBox() {
+      // 이름가져오기 전에 기존 탑승자 명단 먼저 초기화
+      state.rows.forEach((row) => {
+        row.names = "";
+        row.count = 0;
+      });
+      renderBoard();
+      resizeAllTextareas();
+      if (typeof firebase === "undefined" || !firebase.apps || !firebase.database) {
+        alert("Firebase 라이브러리를 불러오지 못했습니다.");
+        return;
+      }
+
+      const hasConfig = FIREBASE_CONFIG && FIREBASE_CONFIG.databaseURL && !String(FIREBASE_CONFIG.databaseURL).includes("여기에") && !String(FIREBASE_CONFIG.databaseURL).includes("YOUR_PROJECT");
+      if (!hasConfig) {
+        alert(`Firebase 설정값을 먼저 입력해 주세요.
+Firebase 콘솔 > 프로젝트 설정 > 내 앱 > SDK 설정 및 구성의 값을 FIREBASE_CONFIG에 붙여넣으면 됩니다.`);
+        return;
+      }
+
+      try {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(FIREBASE_CONFIG);
+        }
+
+        importNamesBtn.disabled = true;
+        const originalText = importNamesBtn.textContent;
+        importNamesBtn.textContent = "이름가져오는중";
+
+        const snapshot = await firebase.database().ref("busSeatApp/seats").get();
+        const names = [];
+
+        snapshot.forEach((child) => {
+          const data = child.val() || {};
+          const rawName = String(data.name || "").trim();
+          if (rawName) names.push(rawName);
+        });
+
+        state.importedNames = names.join(" ");
+
+        if (importedNamesBox) {
+          importedNamesBox.value = state.importedNames;
+        }
+
+        localStorage.setItem(IMPORTED_NAMES_STORAGE_KEY, String(state.importedNames || ""));
+        const matchedNames = await matchImportedNamesToBoard();
+        renderBoard();
+        renderMapping();
+        if (matchedNames.length) {
+          console.log("매칭 등록된 이름:", matchedNames);
+        }
+        resizeAllTextareas();
+        saveData();
+        flashButton(importNamesBtn);
+        importNamesBtn.textContent = originalText;
+        importNamesBtn.disabled = false;
+      } catch (error) {
+        console.error("Firebase 이름 가져오기 오류:", error);
+        importNamesBtn.textContent = "이름가져오기";
+        importNamesBtn.disabled = false;
+        alert("Firebase에서 이름을 가져오지 못했습니다.");
+      }
+    }
+
+    function parseNameTokens(text) {
+      return normalizeNames(text).split(/\s+/).filter(Boolean);
+    }
+
+    async function matchImportedNamesToBoard() {
+      const importedSet = new Set(parseNameTokens(state.importedNames));
+      const matchedNames = new Set();
+
+      for (const name of importedSet) {
+        const candidates = [];
+
+        state.rows.forEach((row, rowIndex) => {
+          const rowStop = String(row.stop || "").trim();
+          const mappingItem = state.mapping.find((item) => {
+            const parts = String(item.title || "").split("|");
+            const mappingStop = String(parts[1] || parts[0] || "").trim();
+            return mappingStop === rowStop;
+          });
+
+          if (!mappingItem) return;
+
+          const candidateNames = parseNameTokens(mappingItem.people);
+          if (candidateNames.includes(name)) {
+            candidates.push({
+              rowIndex,
+              region: String(row.region || "").trim(),
+              stop: rowStop
+            });
+          }
+        });
+
+        // ✅ 1개 매칭
+        if (candidates.length === 1) {
+          addNameToRow(candidates[0].rowIndex, name);
+          matchedNames.add(name);
+          continue;
+        }
+
+        // ✅ 여러개 매칭
+        if (candidates.length >= 2) {
+          const selected = await requestDuplicateNameChoice(name, candidates);
+          if (selected !== null && candidates[selected]) {
+            addNameToRow(candidates[selected].rowIndex, name);
+            matchedNames.add(name);
+          }
+          continue;
+        }
+
+        // ❗ 매칭 없음 → 사용자 선택
+        const allOptions = state.rows.map((row, idx) => ({
+          rowIndex: idx,
+          region: String(row.region || "").trim(),
+          stop: String(row.stop || "").trim()
+        }));
+
+        const selected = await requestDuplicateNameChoice(name, allOptions);
+        if (selected !== null && allOptions[selected]) {
+          addNameToRow(allOptions[selected].rowIndex, name);
+          matchedNames.add(name);
+        }
+      }
+
+      return Array.from(matchedNames);
+    }
+
+    function normalizeNames(value) {
+      return String(value || "").replace(/\n+/g, " ").replace(/\s{2,}/g, " ").trim();
+    }
+
+    function countPeople(text) {
+      if (!text.trim()) return 0;
+      return text.split(/\s+/).filter(Boolean).length;
+    }
+
+    function syncMappingTitle(index, stopName, source = "stop") {
+      if (source === "mapping") {
+        if (state.rows[index]) {
+          state.rows[index].stop = stopName;
+          renderBoard();
+        }
+        return;
+      }
+
+      if (state.mapping[index]) {
+        const parts = String(state.mapping[index].title || "").split("|");
+        const regionText = (parts[0] || "").trim();
+        state.mapping[index].title = regionText + "|" + stopName;
+        renderMapping();
+      }
+    }
+
+    function parseTimeToMinutes(text) {
+      const raw = String(text || "").trim();
+      const match = raw.match(/^(\d{1,2})\s*:\s*(\d{1,2})$/);
+      if (!match) return null;
+      const h = Number(match[1]);
+      const m = Number(match[2]);
+      if (Number.isNaN(h) || Number.isNaN(m)) return null;
+      return h * 60 + m;
+    }
+
+    function parseDurationToMinutes(text) {
+      const raw = String(text || "").trim();
+      const match = raw.match(/^(\d{1,2})\s*:\s*(\d{1,2})$/);
+      if (!match) return 0;
+      const h = Number(match[1]);
+      const m = Number(match[2]);
+      if (Number.isNaN(h) || Number.isNaN(m)) return 0;
+      return h * 60 + m;
+    }
+
+    function formatMinutesToTime(totalMinutes) {
+      let minutes = Number(totalMinutes);
+      if (!Number.isFinite(minutes)) return "0:00";
+      while (minutes < 0) minutes += 24 * 60;
+      minutes = minutes % (24 * 60);
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      return h + ":" + String(m).padStart(2, "0");
+    }
+
+    function isBaseCalcRow(index) {
+      const row = state.rows[index];
+      if (!row) return false;
+      const region = String(row.region || "").replace(/\s+/g, "");
+      const stop = String(row.stop || "").replace(/\s+/g, "");
+      return region.includes("계산동") || stop.includes("계산동") || index === state.rows.length - 1;
+    }
+
+    function recalculateRideTimesFromBottom(baseIndex) {
+      const anchorIndex = Number.isInteger(baseIndex) ? baseIndex : state.rows.length - 1;
+      const baseMinutes = parseTimeToMinutes(state.rows[anchorIndex] && state.rows[anchorIndex].ride);
+      if (baseMinutes === null) return;
+
+      let currentMinutes = baseMinutes;
+      for (let i = anchorIndex - 1; i >= 0; i--) {
+        const belowMoveMinutes = parseDurationToMinutes(state.rows[i + 1] && state.rows[i + 1].move);
+        currentMinutes -= belowMoveMinutes;
+        state.rows[i].ride = formatMinutesToTime(currentMinutes);
+      }
+    }
+
+    function applyTitleEditing() {
+      const titleCell = document.querySelector(".title-cell");
+      if (!titleCell) return;
+      titleCell.contentEditable = adminMode;
+      titleCell.onblur = () => {
+        const text = titleCell.innerText.replace(/탑승\s*위치\s*\/\s*시간/g, "").trim();
+        state.titleFull = text || document.title || defaultData.titleFull;
+        syncDocumentTitleFromState();
+        renderBoard();
+      };
+      titleCell.onkeydown = (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          titleCell.blur();
+        }
+      };
+    }
+
+    function updateSummary() {
+      const total = state.rows.reduce((sum, row) => sum + (Number(row.count) || 0), 0);
+      totalCount.textContent = total;
+    }
+
+    function openDeleteConfirm(index) {
+      const rowIndex = Number(index);
+      if (!Number.isInteger(rowIndex) || rowIndex < 0 || rowIndex >= state.rows.length) return;
+      pendingDeleteIndex = rowIndex;
+      const row = state.rows[rowIndex];
+      const label = row?.stop || `${rowIndex + 1}번째 행`;
+      confirmMessage.textContent = `"${label}" 행을 삭제할까요?`;
+      confirmOverlay.classList.add("show");
+    }
+
+    function closeDeleteConfirm() {
+      confirmOverlay.classList.remove("show");
+      pendingDeleteIndex = null;
+      pendingMappingDeleteIndex = null;
+    }
+
+    function deleteRow(index) {
+      const rowIndex = Number(index);
+      if (!Number.isInteger(rowIndex) || rowIndex < 0 || rowIndex >= state.rows.length) return;
+      state.rows.splice(rowIndex, 1);
+      renderBoard();
+      renderMapping();
+      closeDeleteConfirm();
+    }
+
+    function buildInsertOptions(selectedIndex) {
+      insertPositionSelect.innerHTML = "";
+      for (let i = 0; i <= state.rows.length; i++) {
+        const option = document.createElement("option");
+        option.value = String(i);
+        option.textContent = i === 0 ? "맨위" : `(${state.rows[i - 1]?.stop || ""}) 아래`;
+        if (i === selectedIndex) option.selected = true;
+        insertPositionSelect.appendChild(option);
+      }
+    }
+
+    function buildRegionOptions(selectedRegion) {
+      const regions = Array.from(new Set(state.rows.map((row) => String(row.region || "").trim()).filter(Boolean)));
+      insertRegionSelect.innerHTML = "";
+
+      regions.forEach((region) => {
+        const option = document.createElement("option");
+        option.value = region;
+        option.textContent = region;
+        if (region === selectedRegion) option.selected = true;
+        insertRegionSelect.appendChild(option);
+      });
+
+      const customOption = document.createElement("option");
+      customOption.value = "__custom__";
+      customOption.textContent = "직접 입력";
+      if (!selectedRegion || !regions.includes(selectedRegion)) customOption.selected = true;
+      insertRegionSelect.appendChild(customOption);
+    }
+
+    function getInsertRegionValue() {
+      const selected = insertRegionSelect.value;
+      if (selected === "__custom__") {
+        return insertRegionInput.value.trim() || "새 구역";
+      }
+      return selected || insertRegionInput.value.trim() || "새 구역";
+    }
+
+    function normalizeRegionBlockAfterInsert(insertIndex, regionName) {
+      const region = String(regionName || "").trim() || "새 구역";
+      let start = insertIndex;
+      let end = insertIndex;
+
+      while (start > 0 && state.rows[start - 1] && state.rows[start - 1].region === region) start -= 1;
+      while (end < state.rows.length - 1 && state.rows[end + 1] && state.rows[end + 1].region === region) end += 1;
+      for (let i = start; i <= end; i++) state.rows[i].region = region;
+    }
+
+    function openInsertDialog(defaultIndex) {
+      const safeIndex = Math.max(0, Math.min(state.rows.length, Number(defaultIndex) || 0));
+      pendingInsertIndex = safeIndex;
+      buildInsertOptions(safeIndex);
+      const refRow = state.rows[Math.max(0, safeIndex - 1)] || state.rows[0] || {};
+      const refRegion = refRow.region || "새 구역";
+      buildRegionOptions(refRegion);
+      insertRegionInput.value = "";
+      insertRegionInput.readOnly = false;
+      insertStopInput.value = "새 정류장";
+      insertMoveInput.value = "0:00";
+      insertRideInput.value = deriveInsertedRideTime(safeIndex) || refRow.ride || "0:00";
+      insertOverlay.classList.add("show");
+    }
+
+    function closeInsertDialog() {
+      insertOverlay.classList.remove("show");
+      pendingInsertIndex = null;
+    }
+
+    function deriveInsertedRideTime(insertIndex) {
+      if (insertIndex === state.rows.length - 1) return "";
+      const belowRow = state.rows[insertIndex];
+      if (!belowRow) return "";
+
+      const belowRide = parseTimeToMinutes(belowRow.ride);
+      const belowMove = parseDurationToMinutes(belowRow.move);
+      if (belowRide === null) return "";
+
+      return formatMinutesToTime(belowRide - belowMove);
+    }
+
+    function insertRowAt(index) {
+      const insertIndex = Math.max(0, Math.min(state.rows.length, Number(index) || 0));
+      const regionValue = getInsertRegionValue();
+      const autoRide = deriveInsertedRideTime(insertIndex);
+      const newRow = {
+        region: regionValue,
+        stop: insertStopInput.value.trim() || "새 정류장",
+        move: insertMoveInput.value.trim() || "0:00",
+        ride: autoRide || insertRideInput.value.trim() || "0:00",
+        names: "",
+        count: 0,
+        note: ""
+      };
+      state.rows.splice(insertIndex, 0, newRow);
+      normalizeRegionBlockAfterInsert(insertIndex, regionValue);
+
+      const recalculated = deriveInsertedRideTime(insertIndex);
+      if (recalculated) state.rows[insertIndex].ride = recalculated;
+
+      if (insertIndex > 0) {
+        const insertedRide = parseTimeToMinutes(state.rows[insertIndex].ride);
+        const insertedMove = parseDurationToMinutes(state.rows[insertIndex].move);
+        if (insertedRide !== null) {
+          state.rows[insertIndex - 1].ride = formatMinutesToTime(insertedRide - insertedMove);
+        }
+      }
+      renderBoard();
+      renderMapping();
+      closeInsertDialog();
+    }
+
+    adminAllBtn.addEventListener("click", () => {
+      const adminVisible = document.body.classList.contains("admin-visible");
+      if (!adminVisible) {
+        openPasswordDialog("admin-login");
+        return;
+      }
+
+      document.body.classList.remove("admin-visible");
+      adminMode = false;
+      deleteMode = false;
+      deleteModeBtn.classList.remove("active", "btn-delete");
+      deleteModeBtn.textContent = "행 삭제";
+      updateAdminUi();
+      renderBoard();
+      renderMapping();
+      flashButton(adminAllBtn);
+    });
+
+    adminToggle.addEventListener("click", () => {
+      if (!document.body.classList.contains("admin-visible")) {
+        alert("먼저 관리자모드 버튼으로 로그인하세요.");
+        return;
+      }
+
+      adminMode = !adminMode;
+      if (!adminMode) {
+        deleteMode = false;
+        deleteModeBtn.classList.remove("active", "btn-delete");
+        deleteModeBtn.textContent = "행 삭제";
+      }
+      updateAdminUi();
+      renderBoard();
+      renderMapping();
+      flashButton(adminToggle);
+    });
+
+    deleteModeBtn.addEventListener("click", () => {
+      if (!document.body.classList.contains("admin-visible")) {
+        alert("먼저 관리자모드로 로그인하세요.");
+        return;
+      }
+      deleteMode = !deleteMode;
+      deleteModeBtn.classList.toggle("active", deleteMode);
+      deleteModeBtn.classList.toggle("btn-delete", deleteMode);
+      deleteModeBtn.textContent = deleteMode ? "행 삭제 모드 활성" : "행삭제모드";
+      updateAdminUi();
+      renderBoard();
+      flashButton(deleteModeBtn);
+    });
+
+    routeTbody.addEventListener("click", (event) => {
+      const beforeBtn = event.target.closest("[data-insert-before-index]");
+      if (beforeBtn && adminMode) {
+        event.preventDefault();
+        event.stopPropagation();
+        openInsertDialog(Number(beforeBtn.getAttribute("data-insert-before-index")));
+        return;
+      }
+
+      const addBtn = event.target.closest("[data-insert-after-index]");
+      if (addBtn && adminMode) {
+        event.preventDefault();
+        event.stopPropagation();
+        openInsertDialog(Number(addBtn.getAttribute("data-insert-after-index")) + 1);
+        return;
+      }
+
+      const btn = event.target.closest(".delete-row-btn");
+      if (!btn || !deleteMode) return;
+      event.preventDefault();
+      event.stopPropagation();
+      openDeleteConfirm(btn.getAttribute("data-row-index"));
+    });
+
+    confirmCancelBtn.addEventListener("click", closeDeleteConfirm);
+
+    confirmOkBtn.addEventListener("click", () => {
+      if (pendingDeleteIndex !== null) {
+        deleteRow(pendingDeleteIndex);
+        return;
+      }
+      if (pendingMappingDeleteIndex !== null) {
+        if (pendingMappingDeleteIndex < state.mapping.length) {
+          state.mapping.splice(pendingMappingDeleteIndex, 1);
+        }
+        pendingMappingDeleteIndex = null;
+        confirmOverlay.classList.remove("show");
+        renderMapping();
+      }
+    });
+
+    confirmOverlay.addEventListener("click", (event) => {
+      if (event.target === confirmOverlay) closeDeleteConfirm();
+    });
+
+    insertRegionSelect.addEventListener("change", () => {
+      if (insertRegionSelect.value === "__custom__") insertRegionInput.focus();
+    });
+
+    insertPositionSelect.addEventListener("change", () => {
+      const targetIndex = Math.max(0, Math.min(state.rows.length, Number(insertPositionSelect.value) || 0));
+      const autoRide = deriveInsertedRideTime(targetIndex);
+      if (autoRide) insertRideInput.value = autoRide;
+    });
+
+    insertCancelBtn.addEventListener("click", closeInsertDialog);
+    insertOkBtn.addEventListener("click", () => insertRowAt(insertPositionSelect.value));
+
+    insertOverlay.addEventListener("click", (event) => {
+      if (event.target === insertOverlay) closeInsertDialog();
+    });
+
+    saveBtn.addEventListener("click", saveData);
+
+    resetBtn.addEventListener("click", () => {
+      // 🔥 탑승자 명단(names)만 초기화 (mapping 데이터는 유지)
+      state.rows.forEach((row) => {
+        row.names = "";
+        row.count = 0;
+      });
+
+      renderBoard();
+      resizeAllTextareas();
+      saveData();
+      flashButton(resetBtn);
+    });
+
+    addRowBtn.addEventListener("click", () => {
+      openInsertDialog(state.rows.length);
+      flashButton(addRowBtn);
+    });
+
+    function buildMappingInsertOptions() {
+      mappingPositionSelect.innerHTML = "";
+      for (let i = 0; i <= state.mapping.length; i++) {
+        const opt = document.createElement("option");
+        opt.value = String(i);
+
+        if (i === 0) {
+          opt.textContent = "맨 위";
+        } else if (i === state.mapping.length) {
+          opt.textContent = "맨 뒤";
+        } else {
+          const row = state.rows[i - 1];
+          const region = row?.region || "";
+          const stop = row?.stop || "";
+          opt.textContent = `${region}-${stop}`;
+        }
+
+        mappingPositionSelect.appendChild(opt);
+      }
+    }
+
+    function openMappingInsertDialog() {
+      buildMappingInsertOptions();
+      mappingTitleInput.value = "";
+      mappingInsertOverlay.classList.add("show");
+    }
+
+    function closeMappingInsertDialog() {
+      mappingInsertOverlay.classList.remove("show");
+    }
+
+    addMappingBtn.addEventListener("click", () => {
+      openMappingInsertDialog();
+      flashButton(addMappingBtn);
+    });
+
+    mappingInsertCancelBtn.addEventListener("click", closeMappingInsertDialog);
+
+    mappingInsertOkBtn.addEventListener("click", () => {
+      const idx = Number(mappingPositionSelect.value);
+      const title = mappingTitleInput.value.trim() || `명단 데이터 ${state.mapping.length + 1}`;
+      state.mapping.splice(idx, 0, { title, people: "" });
+      renderMapping();
+      closeMappingInsertDialog();
+    });
+
+    mappingInsertOverlay.addEventListener("click", (e) => {
+      if (e.target === mappingInsertOverlay) closeMappingInsertDialog();
+    });
+
+    mappingGrid.addEventListener("click", (e) => {
+      const deleteBtn = e.target.closest("[data-mapping-delete-index]");
+      if (!deleteBtn || !adminMode) return;
+      pendingMappingDeleteIndex = Number(deleteBtn.getAttribute("data-mapping-delete-index"));
+      const label = state.mapping[pendingMappingDeleteIndex]?.title || `명단 ${pendingMappingDeleteIndex + 1}`;
+      confirmMessage.textContent = `"${label}" 명단 데이터를 삭제할까요?`;
+      confirmOverlay.classList.add("show");
+    });
+
+    passwordCancelBtn.addEventListener("click", closePasswordDialog);
+    passwordOkBtn.addEventListener("click", submitPasswordDialog);
+    passwordOverlay.addEventListener("click", (e) => {
+      if (e.target === passwordOverlay) closePasswordDialog();
+    });
+
+    duplicateNameOkBtn.addEventListener("click", () => {
+      const selectedIndex = Number(duplicateNameSelect.value);
+      closeDuplicateNameDialog();
+      if (duplicateNameResolver) {
+        const resolve = duplicateNameResolver;
+        duplicateNameResolver = null;
+        resolve(Number.isInteger(selectedIndex) ? selectedIndex : 0);
+      }
+    });
+
+    duplicateNameSkipBtn.addEventListener("click", () => {
+      closeDuplicateNameDialog();
+      if (duplicateNameResolver) {
+        const resolve = duplicateNameResolver;
+        duplicateNameResolver = null;
+        resolve(null);
+      }
+    });
+
+    duplicateNameOverlay.addEventListener("click", (e) => {
+      if (e.target === duplicateNameOverlay) {
+        closeDuplicateNameDialog();
+        if (duplicateNameResolver) {
+          const resolve = duplicateNameResolver;
+          duplicateNameResolver = null;
+          resolve(null);
+        }
+      }
+    });
+
+    duplicateNameSelect.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        duplicateNameOkBtn.click();
+      }
+    });
+    passwordDialogInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submitPasswordDialog();
+    });
+    newPasswordInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submitPasswordDialog();
+    });
+    confirmNewPasswordInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submitPasswordDialog();
+    });
+
+    maxWidthInput.addEventListener("input", () => {
+      const width = Math.min(2200, Math.max(700, Number(maxWidthInput.value) || 1200));
+      document.documentElement.style.setProperty("--board-max-width", `${width}px`);
+    });
+
+    
+
+    footerNoteInput.addEventListener("input", () => {
+      state.footerNote = footerNoteInput.value;
+    });
+
+    importedNamesBox.addEventListener("input", () => {
+      state.importedNames = importedNamesBox.value;
+      localStorage.setItem(IMPORTED_NAMES_STORAGE_KEY, String(state.importedNames || ""));
+    });
+
+    importNamesBtn.addEventListener("click", async () => {
+      await importNamesToStorageBox();
+    });
+
+    resetPasswordBtn.addEventListener("click", () => {
+      passwordDialogInput.value = "";
+      openPasswordDialog("master-reset");
+    });
+
+    if (changePasswordBtn) changePasswordBtn.addEventListener("click", () => {
+      if (!document.body.classList.contains("admin-visible")) {
+        alert("먼저 관리자모드로 로그인하세요.");
+        return;
+      }
+      openPasswordDialog("change-password");
+    });
+
+    captureToolbarBtn.addEventListener("click", async () => {
+      if (typeof html2canvas !== "function") {
+        alert("캡쳐 라이브러리를 아직 불러오는 중입니다. 잠시 후 다시 눌러주세요.");
+        return;
+      }
+
+      try {
+        const targetUi = document.getElementById("boardWrap");
+        if (!targetUi) {
+          alert("캡쳐할 UI를 찾지 못했습니다.");
+          return;
+        }
+
+        await captureElementForDownload(targetUi, null);
+        flashButton(captureToolbarBtn);
+      } catch (error) {
+        console.error(error);
+        alert("메인 UI 캡쳐 오류");
+      }
+    });
+
+    captureScheduleBtn.addEventListener("click", async () => {
+      if (typeof html2canvas !== "function") {
+        alert("캡쳐 라이브러리를 아직 불러오는 중입니다.");
+        return;
+      }
+
+      try {
+        const table = document.getElementById("routeBoard");
+        if (!table) {
+          alert("시간표 영역을 찾지 못했습니다.");
+          return;
+        }
+
+        await captureScheduleTableForDownload(table, "버스시간표.png");
+        flashButton(captureScheduleBtn);
+      } catch (e) {
+        console.error(e);
+        alert("시간표 캡쳐 오류");
+      }
+    });
+
+    function createCaptureClone(target, options = {}) {
+      const stage = document.createElement("div");
+      stage.style.position = "fixed";
+      stage.style.left = "-99999px";
+      stage.style.top = "0";
+      stage.style.padding = "0";
+      stage.style.margin = "0";
+      stage.style.background = "#ffffff";
+      stage.style.zIndex = "-1";
+
+      const clone = target.cloneNode(true);
+      clone.style.width = "auto";
+      clone.style.maxWidth = "none";
+      clone.style.overflow = "visible";
+      clone.style.transform = "none";
+
+      stage.appendChild(clone);
+      document.body.appendChild(stage);
+      document.body.classList.add("capture-render");
+
+      const textareas = clone.querySelectorAll("textarea");
+      textareas.forEach((textarea) => {
+        textarea.style.height = "auto";
+        textarea.style.overflow = "visible";
+        textarea.style.whiteSpace = "normal";
+
+        const rawValue = String(textarea.value || "");
+        const normalizedValue = rawValue.split(String.fromCharCode(13)).join("");
+        const lineCount = normalizedValue.split(String.fromCharCode(10)).length;
+        textarea.rows = Math.max(2, lineCount);
+      });
+
+      const titleCell = clone.querySelector(".title-cell");
+      if (titleCell) {
+        titleCell.style.whiteSpace = "normal";
+      }
+
+      const table = clone.querySelector("#routeBoard, .route-board");
+      const sourceTable = target.querySelector("#routeBoard, .route-board");
+      // 🔥 캡쳐 시 텍스트 길이에 맞게 자동 폭 계산
+      let maxStopLen = 0;
+      let maxNamesLen = 0;
+
+      const rows = clone.querySelectorAll("tbody tr");
+      rows.forEach(tr => {
+        const tds = tr.querySelectorAll("td");
+        if (tds.length >= 5) {
+          maxStopLen = Math.max(maxStopLen, (tds[1].innerText || "").length);
+          maxNamesLen = Math.max(maxNamesLen, (tds[4].innerText || "").length);
+        }
+      });
+
+      const stopWidth = Math.min(500, Math.max(140, maxStopLen * 12));
+      const namesWidth = Math.min(600, Math.max(160, maxNamesLen * 8));
+
+      const baseDesiredWidth = stopWidth + namesWidth + 600;
+      const desiredWidth = Math.max(baseDesiredWidth, Number(options.desiredWidth) || 0);
+
+      if (table) {
+        table.style.width = `${desiredWidth}px`;
+        table.style.minWidth = `${desiredWidth}px`;
+      }
+
+      if (options.cropToSchedule && table) {
+        const colgroup = table.querySelector("colgroup");
+        const cols = colgroup ? Array.from(colgroup.querySelectorAll("col")) : [];
+        if (cols.length >= 7) {
+          cols[0].style.width = "92px";
+          cols[1].style.width = "300px";
+          cols[2].style.width = "115px";
+          cols[3].style.width = "175px";
+        }
+
+        const scheduleCells = table.querySelectorAll("thead th:nth-child(-n+4), tbody td:nth-child(-n+4), tfoot td:nth-child(-n+4)");
+        scheduleCells.forEach((cell) => {
+          cell.style.whiteSpace = "normal";
+          cell.style.overflow = "visible";
+          cell.style.textOverflow = "clip";
+          cell.style.wordBreak = "keep-all";
+          cell.style.overflowWrap = "anywhere";
+          cell.style.lineHeight = "1.45";
+        });
+
+        const stopCells = table.querySelectorAll(".stop-name");
+        stopCells.forEach((cell) => {
+          cell.style.fontSize = "18px";
+          cell.style.letterSpacing = "0.5px";
+        });
+
+        const moveCells = table.querySelectorAll(".time-small");
+        moveCells.forEach((cell) => {
+          cell.style.fontSize = "15px";
+          cell.style.whiteSpace = "nowrap";
+        });
+
+        const rideCells = table.querySelectorAll(".time-big");
+        rideCells.forEach((cell) => {
+          cell.style.fontSize = "24px";
+          cell.style.whiteSpace = "nowrap";
+        });
+      }
+
+      return {
+        stage,
+        clone,
+        cleanup() {
+          document.body.classList.remove("capture-render");
+          stage.remove();
+        }
+      };
+    }
+
+    async function captureElementForDownload(target, fileName) {
+      const capture = createCaptureClone(target);
+
+      try {
+        const cloneTextareas = Array.from(capture.clone.querySelectorAll("textarea"));
+
+        cloneTextareas.forEach((textarea) => {
+          const computed = window.getComputedStyle(textarea);
+          const value = String(textarea.value || "");
+
+          const mirror = document.createElement("div");
+          mirror.className = textarea.className + " capture-textarea-mirror";
+          mirror.textContent = value;
+          mirror.style.width = textarea.offsetWidth + "px";
+          mirror.style.minHeight = Math.max(textarea.offsetHeight, textarea.scrollHeight) + "px";
+          mirror.style.padding = computed.padding;
+          mirror.style.margin = computed.margin;
+          mirror.style.border = computed.border;
+          mirror.style.borderRadius = computed.borderRadius;
+          mirror.style.background = computed.backgroundColor;
+          mirror.style.color = computed.color;
+          mirror.style.font = computed.font;
+          mirror.style.fontSize = computed.fontSize;
+          mirror.style.fontFamily = computed.fontFamily;
+          mirror.style.fontWeight = computed.fontWeight;
+          mirror.style.lineHeight = computed.lineHeight;
+          mirror.style.letterSpacing = computed.letterSpacing;
+          mirror.style.textAlign = computed.textAlign;
+          mirror.style.whiteSpace = "pre-wrap";
+          mirror.style.wordBreak = "keep-all";
+          mirror.style.overflowWrap = "anywhere";
+          mirror.style.boxSizing = "border-box";
+          mirror.style.display = computed.display === "inline" ? "block" : computed.display;
+          mirror.style.overflow = "visible";
+
+          textarea.style.display = "none";
+          textarea.parentNode.insertBefore(mirror, textarea.nextSibling);
+        });
+
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        const contentWidth = Math.max(capture.clone.scrollWidth, capture.clone.clientWidth);
+        const contentHeight = Math.max(capture.clone.scrollHeight, capture.clone.clientHeight);
+
+        const canvas = await html2canvas(capture.clone, {
+          backgroundColor: "#ffffff",
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: Math.max(document.documentElement.clientWidth, contentWidth),
+          windowHeight: Math.max(document.documentElement.clientHeight, contentHeight),
+          width: contentWidth,
+          height: contentHeight
+        });
+
+        downloadCanvas(canvas, fileName);
+      } catch (e) {
+        console.error(e);
+        throw e;
+      } finally {
+        capture.cleanup();
+      }
+    }
+
+    async function captureScheduleTableForDownload(sourceTable, fileName) {
+      const stage = document.createElement("div");
+      stage.style.position = "fixed";
+      stage.style.left = "-99999px";
+      stage.style.top = "0";
+      stage.style.background = "#ffffff";
+      stage.style.padding = "20px";
+      stage.style.zIndex = "-1";
+
+      const wrapper = document.createElement("div");
+      wrapper.style.background = "#ffffff";
+      wrapper.style.display = "inline-block";
+      wrapper.style.overflow = "hidden";
+
+      const tableClone = sourceTable.cloneNode(true);
+      tableClone.style.tableLayout = "fixed";
+      tableClone.style.margin = "0";
+      tableClone.style.background = "#ddd";
+
+      const allRows = tableClone.querySelectorAll("tr");
+      allRows.forEach((row, rowIndex) => {
+        const cells = Array.from(row.children);
+        cells.forEach((cell, cellIndex) => {
+          if (cellIndex >= 4) {
+            cell.remove();
+          }
+        });
+        if (rowIndex === 0) {
+          const firstCell = row.querySelector("th, td");
+          if (firstCell) firstCell.colSpan = 4;
+        }
+      });
+
+      const existingColgroup = tableClone.querySelector("colgroup");
+      if (existingColgroup) {
+        existingColgroup.remove();
+      }
+
+      const rows = tableClone.querySelectorAll("tbody tr");
+      let maxStop = 0;
+      let maxMove = 0;
+      let maxRide = 0;
+
+      rows.forEach((tr) => {
+        const tds = tr.querySelectorAll("td");
+        if (tds.length >= 4) {
+          maxStop = Math.max(maxStop, (tds[1].innerText || "").trim().length);
+          maxMove = Math.max(maxMove, (tds[2].innerText || "").trim().length);
+          maxRide = Math.max(maxRide, (tds[3].innerText || "").trim().length);
+        }
+      });
+
+      const regionWidth = 120;
+      const stopWidth = Math.min(900, Math.max(200, maxStop * 14));
+      const moveWidth = Math.min(120, Math.max(40, maxMove * 10));
+      const rideWidth = Math.min(500, Math.max(180, maxRide * 20));
+      const totalWidth = regionWidth + stopWidth + moveWidth + rideWidth;
+
+      wrapper.style.width = totalWidth + "px";
+      wrapper.style.maxWidth = totalWidth + "px";
+
+      tableClone.style.width = totalWidth + "px";
+      tableClone.style.minWidth = totalWidth + "px";
+      tableClone.style.maxWidth = totalWidth + "px";
+
+      const newColgroup = document.createElement("colgroup");
+      [regionWidth, stopWidth, moveWidth, rideWidth].forEach((width) => {
+        const col = document.createElement("col");
+        col.style.width = `${width}px`;
+        newColgroup.appendChild(col);
+      });
+      tableClone.insertBefore(newColgroup, tableClone.firstChild);
+
+      const firstHeaderRow = tableClone.querySelector("thead tr:first-child th");
+      if (firstHeaderRow) {
+        firstHeaderRow.style.whiteSpace = "normal";
+        firstHeaderRow.style.lineHeight = "1.35";
+      }
+
+      tableClone.querySelectorAll("th, td").forEach((cell) => {
+        cell.style.whiteSpace = "normal";
+        cell.style.overflow = "hidden";
+        cell.style.textOverflow = "clip";
+        cell.style.wordBreak = "keep-all";
+        cell.style.overflowWrap = "anywhere";
+        cell.style.lineHeight = "1.45";
+      });
+
+      tableClone.querySelectorAll(".stop-name").forEach((cell) => {
+        cell.style.fontSize = "18px";
+        cell.style.letterSpacing = "0.2px";
+        cell.style.textAlign = "center";
+      });
+
+      tableClone.querySelectorAll(".time-small").forEach((cell) => {
+        cell.style.fontSize = "9px";
+        cell.style.letterSpacing = "0px";
+        cell.style.whiteSpace = "nowrap";
+      });
+
+      tableClone.querySelectorAll(".time-big").forEach((cell) => {
+        cell.style.fontSize = "80px";
+        cell.style.fontWeight = "800";
+        cell.style.letterSpacing = "0px";
+        cell.style.whiteSpace = "nowrap";
+        cell.style.lineHeight = "1";
+      });
+
+      wrapper.appendChild(tableClone);
+      stage.appendChild(wrapper);
+      document.body.appendChild(stage);
+
+      try {
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const canvas = await html2canvas(wrapper, {
+          backgroundColor: "#ffffff",
+          scale: 2.5,
+          useCORS: true,
+          logging: false,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: Math.max(1800, totalWidth + 80),
+          windowHeight: Math.max(1200, wrapper.scrollHeight + 80)
+        });
+        downloadCanvas(canvas, fileName);
+      } finally {
+        stage.remove();
+      }
+    }
+
+    function downloadCanvas(canvas, customFileName) {
+      const now = new Date();
+      const timestamp = now.getFullYear() + "-" +
+        String(now.getMonth() + 1).padStart(2, "0") + "-" +
+        String(now.getDate()).padStart(2, "0") + "_" +
+        String(now.getHours()).padStart(2, "0") +
+        String(now.getMinutes()).padStart(2, "0") +
+        String(now.getSeconds()).padStart(2, "0");
+
+      const fileName = customFileName || `bus-route-${timestamp}.png`;
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    console.assert(typeof loadData === "function", "loadData should exist");
+    console.assert(typeof applyStopColumnSizeInputs === "function", "applyStopColumnSizeInputs should exist");
+    console.assert(Array.isArray(state.rows), "rows should be an array");
+    console.assert(Array.isArray(state.mapping), "mapping should be an array");
+    console.assert(parseTimeToMinutes("6:15") === 375, "parseTimeToMinutes should parse hh:mm");
+    console.assert(formatMinutesToTime(375) === "6:15", "formatMinutesToTime should format minutes");
+    console.assert(countPeople("홍길동 김철수") === 2, "countPeople should count names separated by spaces");
+    console.assert(typeof createCaptureClone === "function", "createCaptureClone should exist");
+    console.assert(typeof captureElementForDownload === "function", "captureElementForDownload should exist");
+    console.assert(typeof captureScheduleTableForDownload === "function", "captureScheduleTableForDownload should exist");
+    console.assert(
+      ["a", "b"].join(String.fromCharCode(10))
+        .split(String.fromCharCode(13)).join("")
+        .split(String.fromCharCode(10)).join(" ") === "a b",
+      "textarea newline normalization should work"
+    );
+    console.assert(String.fromCharCode(13) !== String.fromCharCode(10), "carriage return should differ from newline");
+
+    let resizeTextareasRaf = 0;
+    window.addEventListener("resize", () => {
+      cancelAnimationFrame(resizeTextareasRaf);
+      resizeTextareasRaf = requestAnimationFrame(() => {
+        resizeAllTextareas();
+      });
+    });
+
+    syncStateTitleFromDocument();
+    applyStopColumnSizeInputs();
+    updateAdminUi();
+    renderBoard();
+    renderMapping();
+    resizeAllTextareas();
+  </script></body>
+</html>
