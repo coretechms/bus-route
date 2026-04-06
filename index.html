@@ -1083,6 +1083,7 @@
     };
 
     const REMOTE_BOARD_PATH = "busRouteApp/shared/board";
+    const REMOTE_ADMIN_PATH = "busRouteApp/shared/admin";
     const REMOTE_SEATS_PATH = "busSeatApp/seats";
     let firebaseDb = null;
     let isApplyingRemoteState = false;
@@ -1227,10 +1228,47 @@
       }
     }
 
-    function saveAdminPassword(password) {
+    async function syncAdminPasswordFromRemote() {
+      if (!firebaseDb) return adminPassword;
+      try {
+        const snapshot = await firebaseDb.ref(REMOTE_ADMIN_PATH).get();
+        const remote = snapshot.val() || {};
+        const remotePassword = String(remote.password || "").trim();
+
+        if (remotePassword) {
+          adminPassword = remotePassword;
+          localStorage.setItem(ADMIN_PASSWORD_STORAGE_KEY, adminPassword);
+          return adminPassword;
+        }
+
+        await firebaseDb.ref(REMOTE_ADMIN_PATH).set({
+          password: adminPassword,
+          updatedAt: Date.now()
+        });
+        return adminPassword;
+      } catch (error) {
+        console.error("관리자 비밀번호 원격 불러오기 오류:", error);
+        return adminPassword;
+      }
+    }
+
+    async function saveAdminPasswordRemote(password) {
       adminPassword = String(password || DEFAULT_ADMIN_PASSWORD);
       localStorage.setItem(ADMIN_PASSWORD_STORAGE_KEY, adminPassword);
+
+      if (!firebaseDb) return adminPassword;
+      try {
+        await firebaseDb.ref(REMOTE_ADMIN_PATH).set({
+          password: adminPassword,
+          updatedAt: Date.now()
+        });
+      } catch (error) {
+        console.error("관리자 비밀번호 원격 저장 오류:", error);
+      }
+      return adminPassword;
     }
+
+    
 
     function applyStopColumnSizeInputs() {
       const styles = getComputedStyle(document.documentElement);
@@ -1323,10 +1361,11 @@
       setTimeout(() => passwordDialogInput.focus(), 0);
     }
 
-    function submitPasswordDialog() {
+    async function submitPasswordDialog() {
       const entered = passwordDialogInput.value.trim();
 
       if (passwordDialogMode === "admin-login") {
+        await syncAdminPasswordFromRemote();
         if (entered !== adminPassword) {
           passwordDialogError.textContent = "비밀번호가 올바르지 않습니다.";
           passwordDialogInput.focus();
@@ -1351,7 +1390,7 @@
           passwordDialogInput.select();
           return;
         }
-        saveAdminPassword(DEFAULT_ADMIN_PASSWORD);
+        await saveAdminPasswordRemote(DEFAULT_ADMIN_PASSWORD);
         alert("관리자 비밀번호가 기본값 1234로 초기화되었습니다.");
         flashButton(resetPasswordBtn);
         closePasswordDialog();
@@ -1375,7 +1414,7 @@
           confirmNewPasswordInput.focus();
           return;
         }
-        saveAdminPassword(newPasswordInput.value);
+        await saveAdminPasswordRemote(newPasswordInput.value);
         alert("관리자 비밀번호가 변경되었습니다.");
         flashButton(changePasswordBtn);
         closePasswordDialog();
@@ -1518,6 +1557,8 @@
           await ref.set(getRemotePayload());
         }
 
+        await syncAdminPasswordFromRemote();
+
         ref.off();
         ref.on("value", (snapshot) => {
           const incoming = snapshot.val();
@@ -1543,6 +1584,19 @@
           applyRemoteState(incoming);
         }, (error) => {
           console.error("Firebase 실시간 동기화 오류:", error);
+        });
+
+        const adminRef = firebaseDb.ref(REMOTE_ADMIN_PATH);
+        adminRef.off();
+        adminRef.on("value", (snapshot) => {
+          const incoming = snapshot.val() || {};
+          const remotePassword = String(incoming.password || "").trim();
+          if (!remotePassword || remotePassword === adminPassword) return;
+          adminPassword = remotePassword;
+          localStorage.setItem(ADMIN_PASSWORD_STORAGE_KEY, adminPassword);
+          console.log("관리자 비밀번호 동기화 완료");
+        }, (error) => {
+          console.error("관리자 비밀번호 실시간 동기화 오류:", error);
         });
 
         console.log("Firebase 실시간 공유 연결 완료:", REMOTE_BOARD_PATH);
