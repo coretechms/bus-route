@@ -1492,7 +1492,17 @@
 
     async function initFirebaseRealtime() {
       try {
-        if (typeof firebase === "undefined" || !firebase?.database) return;
+        if (typeof firebase === "undefined" || !firebase?.database) {
+          console.warn("Firebase 라이브러리가 아직 준비되지 않았습니다.");
+          return;
+        }
+
+        const hasConfig = FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId && FIREBASE_CONFIG.databaseURL;
+        if (!hasConfig) {
+          console.warn("Firebase 설정값이 부족합니다.");
+          return;
+        }
+
         if (!firebase.apps.length) {
           firebase.initializeApp(FIREBASE_CONFIG);
         }
@@ -1507,16 +1517,19 @@
           await ref.set(getRemotePayload());
         }
 
+        ref.off("value");
         ref.on("value", (snapshot) => {
           const incoming = snapshot.val();
           if (!incoming) return;
-                    const incomingJson = JSON.stringify({
+
+          const incomingJson = JSON.stringify({
             titleFull: String(incoming.titleFull || "").trim(),
             footerNote: String(incoming.footerNote || ""),
             rows: Array.isArray(incoming.rows) ? incoming.rows : [],
             mapping: Array.isArray(incoming.mapping) ? incoming.mapping : [],
             importedNames: String(incoming.importedNames || "")
           });
+
           const localJson = JSON.stringify({
             titleFull: String(state.titleFull || "").trim(),
             footerNote: String(state.footerNote || ""),
@@ -1524,11 +1537,14 @@
             mapping: Array.isArray(state.mapping) ? state.mapping : [],
             importedNames: String(state.importedNames || "")
           });
-          if (incomingJson === localJson || incomingJson === currentJson) return;
+
+          if (incomingJson === localJson) return;
           applyRemoteState(incoming);
         }, (error) => {
           console.error("Firebase 실시간 동기화 오류:", error);
         });
+
+        console.log("Firebase 실시간 공유 연결 완료:", REMOTE_BOARD_PATH);
       } catch (error) {
         console.error("Firebase 초기화 오류:", error);
       }
@@ -1941,15 +1957,18 @@ Firebase 콘솔 > 프로젝트 설정 > 내 앱 > SDK 설정 및 구성의 값�
       }
 
       try {
-        if (!firebase.apps.length) {
-          firebase.initializeApp(FIREBASE_CONFIG);
+        if (!firebaseDb) {
+          if (!firebase.apps.length) {
+            firebase.initializeApp(FIREBASE_CONFIG);
+          }
+          firebaseDb = firebase.database();
         }
 
         importNamesBtn.disabled = true;
         const originalText = importNamesBtn.textContent;
         importNamesBtn.textContent = "이름가져오는중";
 
-        const snapshot = await firebase.database().ref("busSeatApp/seats").get();
+        const snapshot = await firebaseDb.ref(REMOTE_SEATS_PATH).get();
         const names = [];
 
         snapshot.forEach((child) => {
@@ -2964,10 +2983,10 @@ Firebase 콘솔 > 프로젝트 설정 > 내 앱 > SDK 설정 및 구성의 값�
 
     syncStateTitleFromDocument();
     applyStopColumnSizeInputs();
-    initFirebaseRealtime();
     updateAdminUi();
     renderBoard();
     renderMapping();
     resizeAllTextareas();
+    initFirebaseRealtime();
   </script></body>
 </html>
