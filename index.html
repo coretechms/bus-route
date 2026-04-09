@@ -951,10 +951,12 @@
         <div class="toolbar-left">
           <button id="adminAllBtn" class="btn btn-exit">관리자</button>
           <button id="adminToggle" class="btn btn-admin admin-only">편집 활성화</button>
-                    <button id="addRowBtn" class="btn admin-only">탑승장 행 추가</button>
+          <button id="addRowBtn" class="btn admin-only">탑승장 행 추가</button>
           <button id="deleteModeBtn" class="btn admin-only">행삭제모드</button>
           <button id="saveBtn" class="btn admin-only">내용저장</button>
           <button id="resetBtn" class="btn admin-only">명단초기화</button>
+          <button id="passwordRecoveryGenerateBtn" type="button" class="btn admin-only" style="background:#1f9d45; border-color:#1f9d45; color:#fff;">복구코드생성</button>
+          <button id="passwordChangeModeBtn" type="button" class="btn admin-only">비번변경</button>
           <button id="captureToolbarBtn" class="btn btn-capture admin-only">캡쳐</button>
           <button id="captureScheduleBtn" class="btn btn-capture admin-only">시간표캡쳐</button>
         </div>
@@ -1074,8 +1076,6 @@
         <div id="passwordDialogError" class="password-error"></div>
       </div>
       <div class="password-actions">
-        <button id="passwordRecoveryGenerateBtn" type="button" class="confirm-btn" style="display:none; margin-right:auto; background:#1f9d45; border-color:#1f9d45; color:#fff;">복구코드생성</button>
-        <button id="passwordChangeModeBtn" type="button" class="confirm-btn" style="display:none;">비번변경</button>
         <button id="passwordCancelBtn" type="button" class="confirm-btn">취소</button>
         <button id="passwordOkBtn" type="button" class="confirm-btn" style="background:#d80000; border-color:#d80000; color:#fff;">확인</button>
       </div>
@@ -1409,8 +1409,6 @@
       confirmNewPasswordInput.value = "";
       passwordDialogError.textContent = "";
       passwordDialogExtra.style.display = "none";
-      if (passwordChangeModeBtn) passwordChangeModeBtn.style.display = "none";
-      if (passwordRecoveryGenerateBtn) passwordRecoveryGenerateBtn.style.display = "none";
     }
 
     function closeDuplicateNameDialog() {
@@ -1457,16 +1455,11 @@
       if (mode === "admin-login") {
         passwordDialogTitle.textContent = "관리자 비밀번호 입력";
         passwordDialogExtra.style.display = "none";
-        if (passwordChangeModeBtn) passwordChangeModeBtn.style.display = "inline-flex";
-        if (passwordRecoveryGenerateBtn) passwordRecoveryGenerateBtn.style.display = "inline-flex";
       } else if (mode === "change-password") {
         passwordDialogTitle.textContent = "관리자 비번변경";
         passwordDialogExtra.style.display = "grid";
-        if (passwordChangeModeBtn) passwordChangeModeBtn.style.display = "none";
-        if (passwordRecoveryGenerateBtn) passwordRecoveryGenerateBtn.style.display = "none";
       } else {
-        if (passwordChangeModeBtn) passwordChangeModeBtn.style.display = "none";
-        if (passwordRecoveryGenerateBtn) passwordRecoveryGenerateBtn.style.display = "none";
+        passwordDialogExtra.style.display = "none";
       }
 
       passwordOverlay.classList.add("show");
