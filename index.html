@@ -1077,6 +1077,7 @@
       </div>
       <div class="password-actions">
         <button id="passwordCancelBtn" type="button" class="confirm-btn">취소</button>
+        <button id="preLoginResetPasswordBtn" type="button" class="confirm-btn" style="display:none; background:#1f9d45; border-color:#1f9d45; color:#fff;">비밀번호 초기화</button>
         <button id="passwordOkBtn" type="button" class="confirm-btn" style="background:#d80000; border-color:#d80000; color:#fff;">확인</button>
       </div>
     </div>
@@ -1109,8 +1110,8 @@
     const MAPPING_STORAGE_KEY = "bus-route-mapping-v1";
     const IMPORTED_NAMES_STORAGE_KEY = "bus-route-imported-names-v1";
     const ADMIN_PASSWORD_STORAGE_KEY = "bus-route-admin-password-v1";
+    const RECOVERY_CODE_STORAGE_KEY = "bus-route-recovery-code-hash-v1";
     const DEFAULT_ADMIN_PASSWORD = "1234";
-    const SYSTEM_RECOVERY_KEY = "RkZGRkZGRkZG";
 
     const FIREBASE_CONFIG = {
       apiKey: "AIzaSyBbN8CF35V00kAQzVCZoZoonXDGKTqPfZA",
@@ -1291,6 +1292,7 @@
     const passwordDialogError = document.getElementById("passwordDialogError");
     const passwordCancelBtn = document.getElementById("passwordCancelBtn");
     const passwordOkBtn = document.getElementById("passwordOkBtn");
+    const preLoginResetPasswordBtn = document.getElementById("preLoginResetPasswordBtn");
     const passwordRecoveryGenerateBtn = document.getElementById("passwordRecoveryGenerateBtn");
     const duplicateNameOverlay = document.getElementById("duplicateNameOverlay");
     const duplicateNameMessage = document.getElementById("duplicateNameMessage");
@@ -1303,6 +1305,7 @@
     let pendingInsertIndex = null;
     let pendingConfirmAction = null;
     let adminPassword = loadAdminPassword();
+    let recoveryCodeHash = getLocalRecoveryCodeHash();
     let passwordDialogMode = null;
     let duplicateNameQueue = [];
     let duplicateNameResolver = null;
@@ -1310,12 +1313,47 @@
     function safeClone(value) {
       return JSON.parse(JSON.stringify(value));
     }
+    async function sha256Hex(value) {
+      const data = new TextEncoder().encode(String(value || ""));
+      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+      return Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
+    }
 
-    function decodeRecoveryCode() {
-      return atob(SYSTEM_RECOVERY_KEY)
-        .split("")
-        .map((ch) => String.fromCharCode(ch.charCodeAt(0) - 13))
-        .join("");
+    function generateRecoveryCode() {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      const parts = [];
+      for (let p = 0; p < 4; p += 1) {
+        let part = "";
+        for (let i = 0; i < 4; i += 1) {
+          part += chars[Math.floor(Math.random() * chars.length)];
+        }
+        parts.push(part);
+      }
+      return parts.join("-");
+    }
+
+    function getLocalRecoveryCodeHash() {
+      try {
+        return localStorage.getItem(RECOVERY_CODE_STORAGE_KEY) || "";
+      } catch (error) {
+        console.warn("recovery code local read failed", error);
+        return "";
+      }
+    }
+
+    function saveLocalRecoveryCodeHash(nextHash) {
+      try {
+        if (!nextHash) localStorage.removeItem(RECOVERY_CODE_STORAGE_KEY);
+        else localStorage.setItem(RECOVERY_CODE_STORAGE_KEY, nextHash);
+        return true;
+      } catch (error) {
+        console.warn("recovery code local save failed", error);
+        return false;
+      }
+    }
+
+    function getEffectiveRecoveryCodeHash() {
+      return recoveryCodeHash || getLocalRecoveryCodeHash() || "";
     }
 
     function loadAdminPassword() {
@@ -1329,28 +1367,43 @@
     async function syncAdminPasswordFromRemote() {
       if (!firebaseDb) {
         adminPassword = loadAdminPassword();
+        recoveryCodeHash = getLocalRecoveryCodeHash();
         return adminPassword;
       }
       try {
         const snapshot = await firebaseDb.ref(REMOTE_ADMIN_PATH).get();
         const remote = snapshot.val() || {};
         const remotePassword = String(remote.password || "").trim();
+        const remoteRecoveryHash = String(remote.recoveryCodeHash || "").trim();
 
         if (remotePassword) {
           adminPassword = remotePassword;
           localStorage.setItem(ADMIN_PASSWORD_STORAGE_KEY, adminPassword);
+        } else {
+          adminPassword = loadAdminPassword();
+        }
+
+        if (remoteRecoveryHash) {
+          recoveryCodeHash = remoteRecoveryHash;
+          saveLocalRecoveryCodeHash(remoteRecoveryHash);
+        } else {
+          recoveryCodeHash = getLocalRecoveryCodeHash();
+        }
+
+        if (remotePassword || remoteRecoveryHash) {
           return adminPassword;
         }
 
-        adminPassword = loadAdminPassword();
         await firebaseDb.ref(REMOTE_ADMIN_PATH).set({
           password: adminPassword,
+          recoveryCodeHash: recoveryCodeHash || "",
           updatedAt: Date.now()
         });
         return adminPassword;
       } catch (error) {
         console.error("관리자 비밀번호 원격 불러오기 오류:", error);
         adminPassword = loadAdminPassword();
+        recoveryCodeHash = getLocalRecoveryCodeHash();
         return adminPassword;
       }
     }
@@ -1363,18 +1416,91 @@
       try {
         await firebaseDb.ref(REMOTE_ADMIN_PATH).set({
           password: adminPassword,
+          recoveryCodeHash: recoveryCodeHash || "",
           updatedAt: Date.now()
         });
         const verify = await firebaseDb.ref(REMOTE_ADMIN_PATH).get();
-        const savedPassword = String((verify.val() || {}).password || "").trim();
+        const saved = verify.val() || {};
+        const savedPassword = String(saved.password || "").trim();
+        const savedRecoveryHash = String(saved.recoveryCodeHash || "").trim();
         if (savedPassword) {
           adminPassword = savedPassword;
           localStorage.setItem(ADMIN_PASSWORD_STORAGE_KEY, adminPassword);
+        }
+        if (savedRecoveryHash) {
+          recoveryCodeHash = savedRecoveryHash;
+          saveLocalRecoveryCodeHash(savedRecoveryHash);
         }
       } catch (error) {
         console.error("관리자 비밀번호 원격 저장 오류:", error);
       }
       return adminPassword;
+    }
+
+    async function saveRecoveryCodeHashRemote(nextHash) {
+      recoveryCodeHash = String(nextHash || "").trim();
+      saveLocalRecoveryCodeHash(recoveryCodeHash);
+
+      if (!firebaseDb) return recoveryCodeHash;
+      try {
+        await firebaseDb.ref(REMOTE_ADMIN_PATH).set({
+          password: adminPassword,
+          recoveryCodeHash: recoveryCodeHash || "",
+          updatedAt: Date.now()
+        });
+        const verify = await firebaseDb.ref(REMOTE_ADMIN_PATH).get();
+        const saved = verify.val() || {};
+        const savedRecoveryHash = String(saved.recoveryCodeHash || "").trim();
+        if (savedRecoveryHash) {
+          recoveryCodeHash = savedRecoveryHash;
+          saveLocalRecoveryCodeHash(savedRecoveryHash);
+        }
+      } catch (error) {
+        console.error("복구코드 원격 저장 오류:", error);
+        throw error;
+      }
+      return recoveryCodeHash;
+    }
+
+    async function handleGenerateRecoveryCode() {
+      if (!document.body.classList.contains("admin-visible")) {
+        alert("관리자 인증 후 사용할 수 있습니다.");
+        return;
+      }
+
+      closePasswordDialog();
+      openConfirmDialog("복구코드를 생성할까요?", {
+        okText: "예",
+        cancelText: "아니오",
+        danger: false,
+        onConfirm: async () => {
+          const newCode = generateRecoveryCode();
+          const newHash = await sha256Hex(newCode);
+          const previousHash = getEffectiveRecoveryCodeHash();
+
+          recoveryCodeHash = newHash;
+          saveLocalRecoveryCodeHash(newHash);
+
+          if (firebaseDb) {
+            try {
+              await saveRecoveryCodeHashRemote(newHash);
+            } catch (error) {
+              recoveryCodeHash = previousHash;
+              saveLocalRecoveryCodeHash(previousHash);
+              console.error("복구코드 저장 오류:", error);
+              alert("복구코드 저장에 실패했습니다.");
+              return;
+            }
+          }
+
+          alert(`새 복구코드가 생성되었습니다.
+
+${newCode}
+
+이 코드는 지금 한 번만 표시됩니다. 반드시 별도로 안전하게 보관하세요.`);
+          flashButton(passwordRecoveryGenerateBtn);
+        }
+      });
     }
 
     
@@ -1410,6 +1536,7 @@
       confirmNewPasswordInput.value = "";
       passwordDialogError.textContent = "";
       passwordDialogExtra.style.display = "none";
+      if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "none";
     }
 
     function closeDuplicateNameDialog() {
@@ -1456,15 +1583,49 @@
       if (mode === "admin-login") {
         passwordDialogTitle.textContent = "관리자 비밀번호 입력";
         passwordDialogExtra.style.display = "none";
+        if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "inline-flex";
       } else if (mode === "change-password") {
         passwordDialogTitle.textContent = "관리자 비번변경";
         passwordDialogExtra.style.display = "grid";
+        if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "none";
       } else {
         passwordDialogExtra.style.display = "none";
+        if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "none";
       }
 
       passwordOverlay.classList.add("show");
       setTimeout(() => passwordDialogInput.focus(), 0);
+    }
+
+    async function handleResetAdminPassword() {
+      const typedRecoveryCode = passwordDialogInput.value.trim().toUpperCase();
+      if (!typedRecoveryCode) {
+        passwordDialogError.textContent = "복구코드를 입력하세요.";
+        passwordDialogInput.focus();
+        return;
+      }
+
+      await syncAdminPasswordFromRemote();
+      const savedRecoveryHash = getEffectiveRecoveryCodeHash();
+      if (!savedRecoveryHash) {
+        passwordDialogError.textContent = "등록된 복구코드가 없습니다. 관리자 로그인 후 [복구코드생성]을 먼저 실행하세요.";
+        return;
+      }
+
+      const typedRecoveryHash = await sha256Hex(typedRecoveryCode);
+      if (typedRecoveryHash !== savedRecoveryHash) {
+        passwordDialogError.textContent = "복구코드가 올바르지 않습니다.";
+        passwordDialogInput.focus();
+        passwordDialogInput.select();
+        return;
+      }
+
+      passwordDialogError.textContent = "";
+      await saveAdminPasswordRemote(DEFAULT_ADMIN_PASSWORD);
+      passwordDialogInput.value = "";
+      alert("복구코드 확인 완료. 관리자 비밀번호가 1234로 초기화되었습니다.");
+      if (preLoginResetPasswordBtn) flashButton(preLoginResetPasswordBtn);
+      closePasswordDialog();
     }
 
     async function submitPasswordDialog() {
@@ -1690,11 +1851,19 @@
         adminRef.on("value", (snapshot) => {
           const incoming = snapshot.val() || {};
           const remotePassword = String(incoming.password || "").trim();
-          if (!remotePassword) return;
-          if (remotePassword === adminPassword) return;
-          adminPassword = remotePassword;
-          localStorage.setItem(ADMIN_PASSWORD_STORAGE_KEY, adminPassword);
-          console.log("관리자 비밀번호 동기화 완료");
+          const remoteRecoveryHash = String(incoming.recoveryCodeHash || "").trim();
+
+          if (remotePassword && remotePassword !== adminPassword) {
+            adminPassword = remotePassword;
+            localStorage.setItem(ADMIN_PASSWORD_STORAGE_KEY, adminPassword);
+            console.log("관리자 비밀번호 동기화 완료");
+          }
+
+          if (remoteRecoveryHash && remoteRecoveryHash !== recoveryCodeHash) {
+            recoveryCodeHash = remoteRecoveryHash;
+            saveLocalRecoveryCodeHash(remoteRecoveryHash);
+            console.log("복구코드 해시 동기화 완료");
+          }
         }, (error) => {
           console.error("관리자 비밀번호 실시간 동기화 오류:", error);
         });
@@ -2710,6 +2879,7 @@
 
     passwordCancelBtn.addEventListener("click", closePasswordDialog);
     passwordOkBtn.addEventListener("click", submitPasswordDialog);
+    if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.addEventListener("click", handleResetAdminPassword);
     passwordOverlay.addEventListener("click", (e) => {
       if (e.target === passwordOverlay) closePasswordDialog();
     });
@@ -2776,31 +2946,7 @@
       state.importedNames = importedNamesBox.value;
       scheduleRemoteSave();
     });
-
-    if (passwordRecoveryGenerateBtn) passwordRecoveryGenerateBtn.addEventListener("click", () => {
-      closePasswordDialog();
-      openConfirmDialog("복구코드를 생성할까요?", {
-        okText: "예",
-        cancelText: "아니오",
-        danger: false,
-        onConfirm: async () => {
-          const recoveryCode = decodeRecoveryCode();
-          let copied = false;
-          try {
-            if (navigator.clipboard && window.isSecureContext) {
-              await navigator.clipboard.writeText(recoveryCode);
-              copied = true;
-            }
-          } catch (error) {
-            console.warn("복구코드 복사 실패:", error);
-          }
-          alert(copied
-            ? `복구코드가 생성되었습니다.\n\n${recoveryCode}\n\n클립보드에 복사되었습니다.`
-            : `복구코드가 생성되었습니다.\n\n${recoveryCode}`);
-          flashButton(passwordRecoveryGenerateBtn);
-        }
-      });
-    });
+    if (passwordRecoveryGenerateBtn) passwordRecoveryGenerateBtn.addEventListener("click", handleGenerateRecoveryCode);
 
     if (passwordChangeModeBtn) passwordChangeModeBtn.addEventListener("click", () => {
       const currentPassword = passwordDialogInput.value;
