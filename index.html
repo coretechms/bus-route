@@ -969,13 +969,10 @@
       <div class="data-box">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
           <h2 style="margin:0;">승차장 명단 데이터</h2>
-          <div class="toolbar-right hide-in-admin">
+          <div class="toolbar-right">
             <button id="addMappingBtn" class="btn admin-only">탑승명단 칸 추가</button>
-            <label class="limit-wrap">
-              최대 가로폭(px)
-              <input id="maxWidthInput" type="number" min="700" max="2200" step="10" value="860" />
-            </label>
-            <span id="modeText" class="muted">현재 모드: 보기 전용</span>
+            <button id="mappingResetBtn" class="btn admin-only">명단데이터 초기화</button>
+            <span id="modeText" class="muted">보기 전용</span>
           </div>
         </div>
         <div id="mappingGrid" class="mapping-grid"></div>
@@ -1259,7 +1256,7 @@
     const deleteModeBtn = document.getElementById("deleteModeBtn");
     const addRowBtn = document.getElementById("addRowBtn");
     const addMappingBtn = document.getElementById("addMappingBtn");
-    const maxWidthInput = document.getElementById("maxWidthInput");
+    const mappingResetBtn = document.getElementById("mappingResetBtn");
     const footerNoteInput = document.getElementById("footerNoteInput");
     const importedNamesBox = document.getElementById("importedNamesBox");
     
@@ -1522,7 +1519,7 @@ ${newCode}
       adminAllBtn.textContent = adminVisible ? "관리자종료" : "관리자";
       adminToggle.classList.toggle("active", adminMode);
       adminToggle.textContent = adminMode ? "편집 종료" : "편집 활성화";
-      modeText.textContent = `현재 모드: ${adminMode ? "관리자 편집" : "보기 전용"}${deleteMode ? " / 행 삭제 모드" : ""}`;
+      modeText.textContent = `->: ${adminMode ? "O" : "X"}${deleteMode ? " / 행 삭제 모드" : ""}`;
       document.body.classList.toggle("edit-on", adminMode);
       if (deleteHeader) deleteHeader.textContent = adminMode ? "삭제" : "";
 
@@ -2812,6 +2809,25 @@ ${newCode}
       flashButton(resetBtn);
     });
 
+
+    mappingResetBtn.addEventListener("click", () => {
+      if (!document.body.classList.contains("admin-visible")) {
+        alert("먼저 관리자모드로 로그인하세요.");
+        return;
+      }
+
+      confirmMessage.textContent = "승차장 명단 데이터를 코드 내부 기본값으로 초기화할까요?";
+      pendingConfirmAction = async () => {
+        state.mapping = safeClone(defaultData.mapping);
+        state.importedNames = String(defaultData.importedNames || "");
+        renderMapping();
+        resizeAllTextareas();
+        await saveData();
+        flashButton(mappingResetBtn);
+      };
+      confirmOverlay.classList.add("show");
+    });
+
     addRowBtn.addEventListener("click", () => {
       openInsertDialog(state.rows.length);
       flashButton(addRowBtn);
@@ -2930,12 +2946,7 @@ ${newCode}
       if (e.key === "Enter") submitPasswordDialog();
     });
 
-    maxWidthInput.addEventListener("input", () => {
-      const width = Math.min(2200, Math.max(700, Number(maxWidthInput.value) || 1200));
-      document.documentElement.style.setProperty("--board-max-width", `${width}px`);
-    });
 
-    
 
     footerNoteInput.addEventListener("input", () => {
       state.footerNote = footerNoteInput.value;
