@@ -607,6 +607,49 @@
       box-shadow: var(--shadow);
     }
 
+
+
+    .mapping-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 12px;
+      margin-bottom: 12px;
+      width: 100%;
+    }
+
+    .mapping-header-title {
+      margin: 0;
+      min-width: 0;
+    }
+
+    .mapping-header-controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-left: auto;
+      width: 100%;
+      text-align: right;
+    }
+
+    .mapping-header-controls .muted {
+      white-space: nowrap;
+    }
+
+    @media (max-width: 1000px) {
+      .mapping-header {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+      }
+
+      .mapping-header-controls {
+        justify-content: flex-end;
+        align-content: flex-start;
+      }
+    }
+
     .data-panel h2,
     .help-panel h2 {
       margin: 0 0 12px;
@@ -967,9 +1010,9 @@
 
     <div class="data-panel admin-only-block">
       <div class="data-box">
-        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:nowrap;">
-          <h2 style="margin:0; flex:0 0 auto;">탑승장 데이터</h2>
-          <div class="toolbar-right" style="margin-left:auto; justify-content:flex-end; flex-wrap:nowrap;">
+        <div class="mapping-header">
+          <h2 class="mapping-header-title">탑승장 데이터</h2>
+          <div class="toolbar-right mapping-header-controls">
             <button id="addMappingBtn" class="btn admin-only">탑승장 추가</button>
             <button id="mappingResetBtn" class="btn admin-only">데이터 초기화</button>
             <span id="modeText" class="muted">보기 전용</span>
@@ -1074,8 +1117,10 @@
       </div>
       <div class="password-actions">
         <button id="passwordCancelBtn" type="button" class="confirm-btn">취소</button>
+        <button id="passwordCaptureBtn" type="button" class="confirm-btn btn-capture" style="display:none;">캡쳐</button>
+        <button id="passwordScheduleCaptureBtn" type="button" class="confirm-btn btn-capture" style="display:none;">시간표캡쳐</button>
         <button id="preLoginResetPasswordBtn" type="button" class="confirm-btn" style="display:none; background:#1f9d45; border-color:#1f9d45; color:#fff;">비밀번호 초기화</button>
-        <button id="passwordOkBtn" type="button" class="confirm-btn" style="background:#d80000; border-color:#d80000; color:#fff;">확인</button>
+        <button id="passwordOkBtn" type="button" class="confirm-btn" style="display:none; background:#d80000; border-color:#d80000; color:#fff;">확인</button>
       </div>
     </div>
   </div>
@@ -1288,6 +1333,8 @@
     const confirmNewPasswordInput = document.getElementById("confirmNewPasswordInput");
     const passwordDialogError = document.getElementById("passwordDialogError");
     const passwordCancelBtn = document.getElementById("passwordCancelBtn");
+    const passwordCaptureBtn = document.getElementById("passwordCaptureBtn");
+    const passwordScheduleCaptureBtn = document.getElementById("passwordScheduleCaptureBtn");
     const passwordOkBtn = document.getElementById("passwordOkBtn");
     const preLoginResetPasswordBtn = document.getElementById("preLoginResetPasswordBtn");
     const passwordRecoveryGenerateBtn = document.getElementById("passwordRecoveryGenerateBtn");
@@ -1519,7 +1566,7 @@ ${newCode}
       adminAllBtn.textContent = adminVisible ? "관리자종료" : "관리자";
       adminToggle.classList.toggle("active", adminMode);
       adminToggle.textContent = adminMode ? "편집 종료" : "편집 활성화";
-      modeText.textContent = `->: ${adminMode ? "O" : "X"}${deleteMode ? " / 행 삭제 모드" : ""}`;
+      modeText.textContent = `> ${adminMode ? "O" : "X"}${deleteMode ? " / 행 삭제 모드" : ""}`;
       document.body.classList.toggle("edit-on", adminMode);
       if (deleteHeader) deleteHeader.textContent = adminMode ? "삭제" : "";
 
@@ -1534,6 +1581,9 @@ ${newCode}
       passwordDialogError.textContent = "";
       passwordDialogExtra.style.display = "none";
       if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "none";
+      if (passwordCaptureBtn) passwordCaptureBtn.style.display = "none";
+      if (passwordScheduleCaptureBtn) passwordScheduleCaptureBtn.style.display = "none";
+      if (passwordOkBtn) passwordOkBtn.style.display = "none";
     }
 
     function closeDuplicateNameDialog() {
@@ -1581,13 +1631,22 @@ ${newCode}
         passwordDialogTitle.textContent = "관리자 비밀번호 입력";
         passwordDialogExtra.style.display = "none";
         if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "inline-flex";
+        if (passwordCaptureBtn) passwordCaptureBtn.style.display = "inline-flex";
+        if (passwordScheduleCaptureBtn) passwordScheduleCaptureBtn.style.display = "inline-flex";
+        if (passwordOkBtn) passwordOkBtn.style.display = "none";
       } else if (mode === "change-password") {
         passwordDialogTitle.textContent = "관리자 비번변경";
         passwordDialogExtra.style.display = "grid";
         if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "none";
+        if (passwordCaptureBtn) passwordCaptureBtn.style.display = "none";
+        if (passwordScheduleCaptureBtn) passwordScheduleCaptureBtn.style.display = "none";
+        if (passwordOkBtn) passwordOkBtn.style.display = "inline-flex";
       } else {
         passwordDialogExtra.style.display = "none";
         if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "none";
+        if (passwordCaptureBtn) passwordCaptureBtn.style.display = "none";
+        if (passwordScheduleCaptureBtn) passwordScheduleCaptureBtn.style.display = "none";
+        if (passwordOkBtn) passwordOkBtn.style.display = "inline-flex";
       }
 
       passwordOverlay.classList.add("show");
@@ -2968,7 +3027,7 @@ ${newCode}
       }, 0);
     });
 
-    captureToolbarBtn.addEventListener("click", async () => {
+    async function runMainCapture(triggerButton) {
       if (typeof html2canvas !== "function") {
         alert("캡쳐 라이브러리를 아직 불러오는 중입니다. 잠시 후 다시 눌러주세요.");
         return;
@@ -2982,14 +3041,14 @@ ${newCode}
         }
 
         await captureElementForDownload(targetUi, null);
-        flashButton(captureToolbarBtn);
+        if (triggerButton) flashButton(triggerButton);
       } catch (error) {
         console.error(error);
         alert("메인 UI 캡쳐 오류");
       }
-    });
+    }
 
-    captureScheduleBtn.addEventListener("click", async () => {
+    async function runScheduleCapture(triggerButton) {
       if (typeof html2canvas !== "function") {
         alert("캡쳐 라이브러리를 아직 불러오는 중입니다.");
         return;
@@ -3003,12 +3062,32 @@ ${newCode}
         }
 
         await captureScheduleTableForDownload(table, "버스시간표.png");
-        flashButton(captureScheduleBtn);
+        if (triggerButton) flashButton(triggerButton);
       } catch (e) {
         console.error(e);
         alert("시간표 캡쳐 오류");
       }
+    }
+
+    captureToolbarBtn.addEventListener("click", async () => {
+      await runMainCapture(captureToolbarBtn);
     });
+
+    captureScheduleBtn.addEventListener("click", async () => {
+      await runScheduleCapture(captureScheduleBtn);
+    });
+
+    if (passwordCaptureBtn) {
+      passwordCaptureBtn.addEventListener("click", async () => {
+        await runMainCapture(passwordCaptureBtn);
+      });
+    }
+
+    if (passwordScheduleCaptureBtn) {
+      passwordScheduleCaptureBtn.addEventListener("click", async () => {
+        await runScheduleCapture(passwordScheduleCaptureBtn);
+      });
+    }
 
     function createCaptureClone(target, options = {}) {
       const stage = document.createElement("div");
