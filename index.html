@@ -950,12 +950,12 @@
       <div class="toolbar-box">
         <div class="toolbar-left">
           <button id="adminAllBtn" class="btn btn-exit">관리자</button>
-          <button id="addRowBtn" class="btn admin-only">탑승장 행 추가</button>
-          <button id="deleteModeBtn" class="btn admin-only">행삭제모드</button>
+          <button id="addRowBtn" class="btn admin-only">행 추가</button>
+          <button id="deleteModeBtn" class="btn admin-only">행삭제</button>
           <button id="saveBtn" class="btn admin-only">내용저장</button>
           <button id="passwordChangeModeBtn" type="button" class="btn admin-only">비번변경</button>
           <button id="passwordRecoveryGenerateBtn" type="button" class="btn admin-only" style="background:#1f9d45; border-color:#1f9d45; color:#fff;">복구코드생성</button>
-          <button id="resetBtn" class="btn admin-only">명단초기화</button>
+          <button id="resetBtn" class="btn admin-only">초기화</button>
           <button id="adminToggle" class="btn btn-admin admin-only">편집 활성화</button>
           <button id="captureToolbarBtn" class="btn btn-capture admin-only">캡쳐</button>
           <button id="captureScheduleBtn" class="btn btn-capture admin-only">시간표캡쳐</button>
@@ -968,10 +968,10 @@
     <div class="data-panel admin-only-block">
       <div class="data-box">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
-          <h2 style="margin:0;">승차장 명단 데이터</h2>
+          <h2 style="margin:0;">탑승장 데이터</h2>
           <div class="toolbar-right">
-            <button id="addMappingBtn" class="btn admin-only">탑승명단 칸 추가</button>
-            <button id="mappingResetBtn" class="btn admin-only">명단데이터 초기화</button>
+            <button id="addMappingBtn" class="btn admin-only">탑승장 추가</button>
+            <button id="mappingResetBtn" class="btn admin-only">데이터 초기화</button>
             <span id="modeText" class="muted">보기 전용</span>
           </div>
         </div>
@@ -2816,7 +2816,7 @@ ${newCode}
         return;
       }
 
-      confirmMessage.textContent = "승차장 명단 데이터를 코드 내부 기본값으로 초기화할까요?";
+      confirmMessage.textContent = "탑승장 데이터를 코드 내부 기본값으로 초기화할까요?";
       pendingConfirmAction = async () => {
         state.mapping = safeClone(defaultData.mapping);
         state.importedNames = String(defaultData.importedNames || "");
