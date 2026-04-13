@@ -258,24 +258,24 @@
     }
 
     #adminAllBtn {
-      padding: 3.795px 7.59px;
-      font-size: 13.915px;
+      padding: 2.8px 5.8px;
+      font-size: 12.4px;
     }
 
     #adminAllBtn.active {
-      padding: 3.22575px 6.4515px;
-      font-size: 11.82775px;
+      padding: 2.35px 4.9px;
+      font-size: 10.8px;
     }
 
     @media (max-width: 1000px) {
       #adminAllBtn {
-        padding: 3.795px 7.59px;
-        font-size: 13.915px;
+        padding: 2.8px 5.8px;
+        font-size: 12.4px;
       }
 
       #adminAllBtn.active {
-        padding: 3.22575px 6.4515px;
-        font-size: 11.82775px;
+        padding: 2.35px 4.9px;
+        font-size: 10.8px;
       }
     }
 
@@ -1120,6 +1120,7 @@
         <button id="passwordCaptureBtn" type="button" class="confirm-btn btn-capture" style="display:none;">캡쳐</button>
         <button id="passwordScheduleCaptureBtn" type="button" class="confirm-btn btn-capture" style="display:none;">시간표캡쳐</button>
         <button id="preLoginResetPasswordBtn" type="button" class="confirm-btn" style="display:none; background:#1f9d45; border-color:#1f9d45; color:#fff;">비밀번호 초기화</button>
+        <button id="passwordTripPlanBtn" type="button" class="confirm-btn" style="display:none; background:#1737c9; border-color:#1737c9; color:#fff;">산행계획</button>
         <button id="passwordOkBtn" type="button" class="confirm-btn" style="display:none; background:#d80000; border-color:#d80000; color:#fff;">확인</button>
       </div>
     </div>
@@ -1169,7 +1170,7 @@
     const REMOTE_ADMIN_PATH = "busRouteApp/shared/admin";
     const REMOTE_SEATS_PATH = "busSeatApp/seats";
     const REMOTE_SEAT_TITLE_PATH = "busSeatApp/shared/mainTitle";
-    const GITHUB_BUS_SEAT_SITE_URL = "https://coretechms.github.io/bus-seat/";
+    const GITHUB_BUS_SEAT_SITE_URL = "https://coretechms.github.io/trip-schedule/";
     const BUS_SEAT_INFO_STORAGE_KEYS = ["bus-seat-layout-info-v4", "busSeatLayoutInfo", "busSeatMainTitle", "bus-seat-main-title"];
     let firebaseDb = null;
     let isApplyingRemoteState = false;
@@ -1337,6 +1338,7 @@
     const passwordScheduleCaptureBtn = document.getElementById("passwordScheduleCaptureBtn");
     const passwordOkBtn = document.getElementById("passwordOkBtn");
     const preLoginResetPasswordBtn = document.getElementById("preLoginResetPasswordBtn");
+    const passwordTripPlanBtn = document.getElementById("passwordTripPlanBtn");
     const passwordRecoveryGenerateBtn = document.getElementById("passwordRecoveryGenerateBtn");
     const duplicateNameOverlay = document.getElementById("duplicateNameOverlay");
     const duplicateNameMessage = document.getElementById("duplicateNameMessage");
@@ -1581,6 +1583,7 @@ ${newCode}
       passwordDialogError.textContent = "";
       passwordDialogExtra.style.display = "none";
       if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "none";
+      if (passwordTripPlanBtn) passwordTripPlanBtn.style.display = "none";
       if (passwordCaptureBtn) passwordCaptureBtn.style.display = "none";
       if (passwordScheduleCaptureBtn) passwordScheduleCaptureBtn.style.display = "none";
       if (passwordOkBtn) passwordOkBtn.style.display = "none";
@@ -1631,6 +1634,7 @@ ${newCode}
         passwordDialogTitle.textContent = "관리자 비밀번호 입력";
         passwordDialogExtra.style.display = "none";
         if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "inline-flex";
+        if (passwordTripPlanBtn) passwordTripPlanBtn.style.display = "inline-flex";
         if (passwordCaptureBtn) passwordCaptureBtn.style.display = "inline-flex";
         if (passwordScheduleCaptureBtn) passwordScheduleCaptureBtn.style.display = "inline-flex";
         if (passwordOkBtn) passwordOkBtn.style.display = "none";
@@ -1638,12 +1642,14 @@ ${newCode}
         passwordDialogTitle.textContent = "관리자 비번변경";
         passwordDialogExtra.style.display = "grid";
         if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "none";
+        if (passwordTripPlanBtn) passwordTripPlanBtn.style.display = "none";
         if (passwordCaptureBtn) passwordCaptureBtn.style.display = "none";
         if (passwordScheduleCaptureBtn) passwordScheduleCaptureBtn.style.display = "none";
         if (passwordOkBtn) passwordOkBtn.style.display = "inline-flex";
       } else {
         passwordDialogExtra.style.display = "none";
         if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "none";
+        if (passwordTripPlanBtn) passwordTripPlanBtn.style.display = "none";
         if (passwordCaptureBtn) passwordCaptureBtn.style.display = "none";
         if (passwordScheduleCaptureBtn) passwordScheduleCaptureBtn.style.display = "none";
         if (passwordOkBtn) passwordOkBtn.style.display = "inline-flex";
@@ -1651,6 +1657,24 @@ ${newCode}
 
       passwordOverlay.classList.add("show");
       setTimeout(() => passwordDialogInput.focus(), 0);
+    }
+
+
+    async function openTripPlanWithAdminPassword() {
+      const entered = passwordDialogInput.value.trim();
+      await syncAdminPasswordFromRemote();
+      if (entered !== adminPassword) {
+        passwordDialogError.textContent = "비밀번호가 올바르지 않습니다.";
+        passwordDialogInput.focus();
+        passwordDialogInput.select();
+        return;
+      }
+      try {
+        sessionStorage.setItem("tripPlanAdminVerifiedPassword", entered);
+      } catch (error) {
+        console.warn("tripPlanAdminVerifiedPassword session save failed", error);
+      }
+      window.location.href = "https://coretechms.github.io/trip-schedule/";
     }
 
     async function handleResetAdminPassword() {
@@ -2955,6 +2979,7 @@ ${newCode}
     passwordCancelBtn.addEventListener("click", closePasswordDialog);
     passwordOkBtn.addEventListener("click", submitPasswordDialog);
     if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.addEventListener("click", handleResetAdminPassword);
+    if (passwordTripPlanBtn) passwordTripPlanBtn.addEventListener("click", openTripPlanWithAdminPassword);
     passwordOverlay.addEventListener("click", (e) => {
       if (e.target === passwordOverlay) closePasswordDialog();
     });
