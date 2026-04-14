@@ -934,6 +934,11 @@
       display: none;
     }
 
+
+    #adminPanel .btn {
+      min-height: 32px;
+    }
+
     /* 🔥 관리자모드에서 특정 UI 숨김 */
     .hide-in-admin {
       display: flex;
@@ -950,6 +955,25 @@
     body.admin-visible .admin-only-block {
       display: block;
     }
+  
+
+    /* admin panel buttons: 1.3x taller */
+    #adminPanel .btn,
+    #adminPanel button.btn,
+    #adminPanel select,
+    #adminPanel input {
+      height: 36px !important;
+    }
+
+    @media (max-width: 760px) {
+      #adminPanel .btn,
+      #adminPanel button.btn,
+      #adminPanel select,
+      #adminPanel input {
+        height: 36px !important;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -1120,8 +1144,7 @@
         <button id="passwordCaptureBtn" type="button" class="confirm-btn btn-capture" style="display:none;">캡쳐</button>
         <button id="passwordScheduleCaptureBtn" type="button" class="confirm-btn btn-capture" style="display:none;">시간표</button>
         <button id="preLoginResetPasswordBtn" type="button" class="confirm-btn" style="display:none; background:#1f9d45; border-color:#1f9d45; color:#fff;">비번초기화</button>
-        <button id="passwordTripPlanBtn" type="button" class="confirm-btn" style="display:none; background:#1737c9; border-color:#1737c9; color:#fff;">산행계획</button>
-        <button id="passwordOkBtn" type="button" class="confirm-btn" style="display:none; background:#d80000; border-color:#d80000; color:#fff;">확인</button>
+                <button id="passwordOkBtn" type="button" class="confirm-btn" style="display:none; background:#d80000; border-color:#d80000; color:#fff;">확인</button>
       </div>
     </div>
   </div>
@@ -1338,7 +1361,6 @@
     const passwordScheduleCaptureBtn = document.getElementById("passwordScheduleCaptureBtn");
     const passwordOkBtn = document.getElementById("passwordOkBtn");
     const preLoginResetPasswordBtn = document.getElementById("preLoginResetPasswordBtn");
-    const passwordTripPlanBtn = document.getElementById("passwordTripPlanBtn");
     const passwordRecoveryGenerateBtn = document.getElementById("passwordRecoveryGenerateBtn");
     const duplicateNameOverlay = document.getElementById("duplicateNameOverlay");
     const duplicateNameMessage = document.getElementById("duplicateNameMessage");
@@ -1583,7 +1605,6 @@ ${newCode}
       passwordDialogError.textContent = "";
       passwordDialogExtra.style.display = "none";
       if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "none";
-      if (passwordTripPlanBtn) passwordTripPlanBtn.style.display = "none";
       if (passwordCaptureBtn) passwordCaptureBtn.style.display = "none";
       if (passwordScheduleCaptureBtn) passwordScheduleCaptureBtn.style.display = "none";
       if (passwordOkBtn) passwordOkBtn.style.display = "none";
@@ -1634,7 +1655,6 @@ ${newCode}
         passwordDialogTitle.textContent = "관리자 비밀번호 입력";
         passwordDialogExtra.style.display = "none";
         if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "inline-flex";
-        if (passwordTripPlanBtn) passwordTripPlanBtn.style.display = "inline-flex";
         if (passwordCaptureBtn) passwordCaptureBtn.style.display = "inline-flex";
         if (passwordScheduleCaptureBtn) passwordScheduleCaptureBtn.style.display = "inline-flex";
         if (passwordOkBtn) passwordOkBtn.style.display = "none";
@@ -1642,39 +1662,19 @@ ${newCode}
         passwordDialogTitle.textContent = "관리자 비번변경";
         passwordDialogExtra.style.display = "grid";
         if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "none";
-        if (passwordTripPlanBtn) passwordTripPlanBtn.style.display = "none";
-        if (passwordCaptureBtn) passwordCaptureBtn.style.display = "none";
+          if (passwordCaptureBtn) passwordCaptureBtn.style.display = "none";
         if (passwordScheduleCaptureBtn) passwordScheduleCaptureBtn.style.display = "none";
         if (passwordOkBtn) passwordOkBtn.style.display = "inline-flex";
       } else {
         passwordDialogExtra.style.display = "none";
         if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.style.display = "none";
-        if (passwordTripPlanBtn) passwordTripPlanBtn.style.display = "none";
-        if (passwordCaptureBtn) passwordCaptureBtn.style.display = "none";
+          if (passwordCaptureBtn) passwordCaptureBtn.style.display = "none";
         if (passwordScheduleCaptureBtn) passwordScheduleCaptureBtn.style.display = "none";
         if (passwordOkBtn) passwordOkBtn.style.display = "inline-flex";
       }
 
       passwordOverlay.classList.add("show");
       setTimeout(() => passwordDialogInput.focus(), 0);
-    }
-
-
-    async function openTripPlanWithAdminPassword() {
-      const entered = passwordDialogInput.value.trim();
-      await syncAdminPasswordFromRemote();
-      if (entered !== adminPassword) {
-        passwordDialogError.textContent = "비밀번호가 올바르지 않습니다.";
-        passwordDialogInput.focus();
-        passwordDialogInput.select();
-        return;
-      }
-      try {
-        sessionStorage.setItem("tripPlanAdminVerifiedPassword", entered);
-      } catch (error) {
-        console.warn("tripPlanAdminVerifiedPassword session save failed", error);
-      }
-      window.location.href = "https://coretechms.github.io/trip-schedule/";
     }
 
     async function handleResetAdminPassword() {
@@ -2979,7 +2979,6 @@ ${newCode}
     passwordCancelBtn.addEventListener("click", closePasswordDialog);
     passwordOkBtn.addEventListener("click", submitPasswordDialog);
     if (preLoginResetPasswordBtn) preLoginResetPasswordBtn.addEventListener("click", handleResetAdminPassword);
-    if (passwordTripPlanBtn) passwordTripPlanBtn.addEventListener("click", openTripPlanWithAdminPassword);
     passwordOverlay.addEventListener("click", (e) => {
       if (e.target === passwordOverlay) closePasswordDialog();
     });
