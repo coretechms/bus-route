@@ -1442,6 +1442,11 @@
       return String(value || "").replace(/\s+/g, " ").trim();
     }
 
+    function extractBusSeatInfoTitleMain(snapshotValue) {
+      if (!snapshotValue || typeof snapshotValue !== "object") return "";
+      return normalizeSeatMainTitle(snapshotValue?.busInfo?.titleMain || "");
+    }
+
     function extractSeatMainTitleFromStorageValue(raw) {
       if (raw == null) return "";
       const text = String(raw).trim();
@@ -1450,7 +1455,14 @@
       try {
         const parsed = JSON.parse(text);
         if (parsed && typeof parsed === "object") {
-          const candidate = parsed.mainTitle || parsed.titleFull || parsed.title || parsed.headerTitle || parsed.boardTitle || "";
+          const candidate =
+            parsed?.busInfo?.titleMain ||
+            parsed.mainTitle ||
+            parsed.titleFull ||
+            parsed.title ||
+            parsed.headerTitle ||
+            parsed.boardTitle ||
+            "";
           return normalizeSeatMainTitle(candidate);
         }
       } catch (error) {
@@ -1473,7 +1485,7 @@
     }
 
     function composeBoardHeading() {
-      return normalizeSeatMainTitle(state.titleFull || document.title || defaultData.titleFull);
+      return normalizeSeatMainTitle(state.seatMainTitle || state.titleFull || document.title || defaultData.titleFull);
     }
 
     function renderBoardHeading() {
@@ -1487,6 +1499,21 @@
         titleLinkNode.target = "_blank";
         titleLinkNode.rel = "noopener noreferrer";
       }
+    }
+
+    function bindBusSeatInfoTitleMainRealtime() {
+      if (!firebaseDb) return;
+      firebaseDb.ref("busSeatApp").off("value", window.__busSeatInfoTitleMainHandler);
+      window.__busSeatInfoTitleMainHandler = (snapshot) => {
+        const nextTitle = extractBusSeatInfoTitleMain(snapshot.val());
+        if (!nextTitle) return;
+        state.seatMainTitle = nextTitle;
+        renderBoardHeading();
+        persistLocalOnly();
+      };
+      firebaseDb.ref("busSeatApp").on("value", window.__busSeatInfoTitleMainHandler, (error) => {
+        console.error("bus-seat infoTitleMain 실시간 수신 오류:", error);
+      });
     }
 
     function parseDocumentTitleParts() {
@@ -1913,6 +1940,7 @@ ${newCode}
 
       if (passwordDialogMode === "admin-login") {
         await syncAdminPasswordFromRemote();
+        bindBusSeatInfoTitleMainRealtime();
         if (entered !== adminPassword) {
           passwordDialogError.textContent = "비밀번호가 올바르지 않습니다.";
           passwordDialogInput.focus();
