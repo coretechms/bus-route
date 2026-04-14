@@ -1147,6 +1147,33 @@
     }
 
 
+  
+    .route-board tr.names-empty-row td {
+      padding-top: 2.1px !important;
+      padding-bottom: 2.1px !important;
+    }
+
+    .route-board tr.names-empty-row .names-cell textarea,
+    .route-board tr.names-empty-row .names-cell .edit-field,
+    .route-board tr.names-empty-row .count-cell input,
+    .route-board tr.names-empty-row .time-small .edit-field,
+    .route-board tr.names-empty-row .time-big .edit-field {
+      min-height: 17px !important;
+      height: 17px !important;
+      line-height: 1.1 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+    }
+
+    .route-board tr.names-empty-row .region,
+    .route-board tr.names-empty-row .stop-name,
+    .route-board tr.names-empty-row .time-small,
+    .route-board tr.names-empty-row .time-big,
+    .route-board tr.names-empty-row .count-cell {
+      line-height: 1.1 !important;
+    }
+
+
   </style>
 </head>
 <body>
@@ -2197,6 +2224,8 @@ ${newCode}
         const index = row.sourceIndex;
         const is29th = renderIndex === 28; // 화면 기준 29번째
         const tr = document.createElement("tr");
+        const isEmptyNames = !normalizeNames(row.names).trim();
+        if (isEmptyNames) tr.classList.add("names-empty-row");
         renderIndex++;
         
 
@@ -2230,9 +2259,7 @@ ${newCode}
           syncMappingTitle(index, value, "stop");
           scheduleRemoteSave();
         });
-
-        const isEmptyNames = !row.names || !row.names.trim();
-        stopTd.style.color = isEmptyNames ? "#ddd" : "";
+stopTd.style.color = isEmptyNames ? "#ddd" : "";
         tr.appendChild(stopTd);
 
         const moveTd = makeEditableCell(row.move, "time-small", adminMode, (value) => {
