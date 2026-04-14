@@ -955,24 +955,197 @@
     body.admin-visible .admin-only-block {
       display: block;
     }
-  
-
-    /* admin panel buttons: 1.3x taller */
-    #adminPanel .btn,
-    #adminPanel button.btn,
-    #adminPanel select,
-    #adminPanel input {
-      height: 36px !important;
+    }
     }
 
-    @media (max-width: 760px) {
-      #adminPanel .btn,
-      #adminPanel button.btn,
-      #adminPanel select,
-      #adminPanel input {
-        height: 36px !important;
+
+  
+    /* admin mode specified buttons: height 2x on both mobile and PC */
+    body.admin-visible #addRowBtn,
+    body.admin-visible #deleteModeBtn,
+    body.admin-visible #saveBtn,
+    body.admin-visible #resetBtn,
+    body.admin-visible #passwordChangeModeBtn,
+    body.admin-visible #passwordRecoveryGenerateBtn,
+    body.admin-visible #adminToggle,
+    body.admin-visible #captureToolbarBtn,
+    body.admin-visible #captureScheduleBtn,
+    body.admin-visible #addMappingBtn,
+    body.admin-visible #mappingResetBtn,
+    body.admin-visible #adminAllBtn {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-height: 56px !important;
+      padding-top: 10px !important;
+      padding-bottom: 10px !important;
+      line-height: 1.2 !important;
+      white-space: nowrap !important;
+    }
+
+    @media (max-width: 1000px) {
+      body.admin-visible #addRowBtn,
+      body.admin-visible #deleteModeBtn,
+      body.admin-visible #saveBtn,
+      body.admin-visible #resetBtn,
+      body.admin-visible #passwordChangeModeBtn,
+      body.admin-visible #passwordRecoveryGenerateBtn,
+      body.admin-visible #adminToggle,
+      body.admin-visible #captureToolbarBtn,
+      body.admin-visible #captureScheduleBtn,
+      body.admin-visible #addMappingBtn,
+      body.admin-visible #mappingResetBtn,
+      body.admin-visible #adminAllBtn {
+        min-height: 56px !important;
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+        line-height: 1.2 !important;
       }
     }
+
+
+  
+    /* password dialog action buttons: reduce height by 30% */
+    #passwordCancelBtn,
+    #passwordCaptureBtn,
+    #passwordScheduleCaptureBtn,
+    #preLoginResetPasswordBtn {
+      padding-top: 6px !important;
+      padding-bottom: 6px !important;
+      min-height: 28px !important;
+      height: 28px !important;
+      line-height: 1.1 !important;
+    }
+
+
+  
+    /* adminAllBtn visual alignment tweak */
+    .toolbar {
+      justify-content: flex-start !important;
+    }
+
+    .toolbar-box {
+      margin-left: 0 !important;
+      margin-right: auto !important;
+      justify-content: flex-start !important;
+      align-items: stretch !important;
+    }
+
+    .toolbar-left {
+      align-items: stretch !important;
+    }
+
+    #adminAllBtn {
+      border-color: #ffffff !important;
+      align-self: stretch !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-height: 100% !important;
+      height: auto !important;
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+      margin-left: 0 !important;
+    }
+
+    #adminAllBtn.active {
+      border-color: #ffffff !important;
+    }
+
+    @media (max-width: 1000px) {
+      .toolbar {
+        justify-content: flex-start !important;
+      }
+
+      .toolbar-box {
+        margin-left: 0 !important;
+        margin-right: auto !important;
+        justify-content: flex-start !important;
+        align-items: stretch !important;
+      }
+
+      .toolbar-left {
+        align-items: stretch !important;
+      }
+
+      #adminAllBtn {
+        border-color: #ffffff !important;
+        align-self: stretch !important;
+        min-height: 100% !important;
+        height: auto !important;
+        margin-left: 0 !important;
+      }
+    }
+
+
+  
+    /* adminAllBtn screen-left edge align */
+    .app {
+      align-items: stretch !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+
+    .toolbar {
+      width: 100% !important;
+      justify-content: flex-start !important;
+      padding-left: 0 !important;
+      margin-left: 0 !important;
+    }
+
+    .toolbar-box {
+      margin-left: 0 !important;
+      margin-right: auto !important;
+      border-top-left-radius: 0 !important;
+      border-bottom-left-radius: 0 !important;
+    }
+
+    @media (max-width: 1000px) {
+      .app {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+      }
+
+      .toolbar {
+        width: 100% !important;
+        justify-content: flex-start !important;
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+      }
+
+      .toolbar-box {
+        margin-left: 0 !important;
+        margin-right: auto !important;
+        border-top-left-radius: 0 !important;
+        border-bottom-left-radius: 0 !important;
+      }
+    }
+
+
+  
+    /* top admin toolbar buttons: height 1.5x */
+    body.admin-visible .toolbar-left > .btn.admin-only,
+    body.admin-visible .toolbar-left > #adminAllBtn {
+      min-height: 42px !important;
+      height: 42px !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      line-height: 1.2 !important;
+    }
+
+    @media (max-width: 1000px) {
+      body.admin-visible .toolbar-left > .btn.admin-only,
+      body.admin-visible .toolbar-left > #adminAllBtn {
+        min-height: 42px !important;
+        height: 42px !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+      }
+    }
+
 
   </style>
 </head>
