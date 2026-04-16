@@ -3640,7 +3640,7 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
         String(now.getMinutes()).padStart(2, "0") +
         String(now.getSeconds()).padStart(2, "0");
 
-      const fileName = customFileName || `버스-노선-${timestamp}.png`;
+      const fileName = customFileName || `버스노선.png`;
       const link = document.createElement("a");
       link.href = canvas.toDataURL("image/png");
       link.download = fileName;
