@@ -1019,20 +1019,27 @@
 
 
   
-    /* adminAllBtn visual alignment tweak */
+    /* 화면 중심 정렬 */
     .toolbar {
-      justify-content: flex-start !important;
+      width: 100% !important;
+      justify-content: center !important;
+      padding-left: 0 !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
     }
 
     .toolbar-box {
-      margin-left: 0 !important;
+      margin-left: auto !important;
       margin-right: auto !important;
-      justify-content: flex-start !important;
+      justify-content: center !important;
       align-items: stretch !important;
+      border-top-left-radius: calc(var(--radius) * 0.88) !important;
+      border-bottom-left-radius: calc(var(--radius) * 0.88) !important;
     }
 
     .toolbar-left {
       align-items: stretch !important;
+      justify-content: center !important;
     }
 
     #adminAllBtn {
@@ -1052,20 +1059,39 @@
       border-color: #ffffff !important;
     }
 
+    .app {
+      align-items: center !important;
+      padding-left: 7px !important;
+      padding-right: 7px !important;
+    }
+
     @media (max-width: 1000px) {
+      .app {
+        align-items: center !important;
+        padding-left: 7px !important;
+        padding-right: 7px !important;
+      }
+
       .toolbar {
-        justify-content: flex-start !important;
+        width: 100% !important;
+        justify-content: center !important;
+        padding-left: 0 !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
       }
 
       .toolbar-box {
-        margin-left: 0 !important;
+        margin-left: auto !important;
         margin-right: auto !important;
-        justify-content: flex-start !important;
+        justify-content: center !important;
         align-items: stretch !important;
+        border-top-left-radius: calc(var(--radius) * 0.88) !important;
+        border-bottom-left-radius: calc(var(--radius) * 0.88) !important;
       }
 
       .toolbar-left {
         align-items: stretch !important;
+        justify-content: center !important;
       }
 
       #adminAllBtn {
@@ -1074,50 +1100,6 @@
         min-height: 100% !important;
         height: auto !important;
         margin-left: 0 !important;
-      }
-    }
-
-
-  
-    /* adminAllBtn screen-left edge align */
-    .app {
-      align-items: stretch !important;
-      padding-left: 0 !important;
-      padding-right: 0 !important;
-    }
-
-    .toolbar {
-      width: 100% !important;
-      justify-content: flex-start !important;
-      padding-left: 0 !important;
-      margin-left: 0 !important;
-    }
-
-    .toolbar-box {
-      margin-left: 0 !important;
-      margin-right: auto !important;
-      border-top-left-radius: 0 !important;
-      border-bottom-left-radius: 0 !important;
-    }
-
-    @media (max-width: 1000px) {
-      .app {
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-      }
-
-      .toolbar {
-        width: 100% !important;
-        justify-content: flex-start !important;
-        padding-left: 0 !important;
-        margin-left: 0 !important;
-      }
-
-      .toolbar-box {
-        margin-left: 0 !important;
-        margin-right: auto !important;
-        border-top-left-radius: 0 !important;
-        border-bottom-left-radius: 0 !important;
       }
     }
 
@@ -3658,7 +3640,7 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
         String(now.getMinutes()).padStart(2, "0") +
         String(now.getSeconds()).padStart(2, "0");
 
-      const fileName = customFileName || `bus-route-${timestamp}.png`;
+      const fileName = customFileName || `버스-노선-${timestamp}.png`;
       const link = document.createElement("a");
       link.href = canvas.toDataURL("image/png");
       link.download = fileName;
