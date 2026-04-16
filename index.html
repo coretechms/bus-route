@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -24,7 +26,7 @@
       --yellow: #fff9cc;
       --blue: #083dff;
       --red: #ff1818;
-      --beige: #f3ebde;
+      --beige: #ffffff;
       --purple: #d9d4e4;
       --greenish: #e8edc0;
       --admin-on: #e7f7e7;
@@ -279,7 +281,7 @@
 
     .row-delete-cell {
       text-align: center;
-      background: #f7f7f7 !important;
+      background: #efefef !important;
     }
 
     .delete-row-btn {
@@ -446,6 +448,11 @@
       width: clamp(var(--col-count-min), var(--col-count-fluid), var(--col-count-max));
     }
 
+    .route-board th:nth-child(7),
+    .route-board td:nth-child(7) {
+      background: #efefef !important;
+    }
+
     .route-board .title-cell {
       background: #f7f7f7;
       font-size: var(--fs-title);
@@ -470,7 +477,7 @@
     }
 
     .region {
-      background: var(--purple) !important;
+      background: #efefef !important;
       text-align: center;
       font-weight: 400;
       font-size: 20px;
@@ -537,14 +544,14 @@
     }
 
     .total-label {
-      background: #fff9cc !important;
+      background: #efefef !important;
       text-align: center;
       font-weight: 900;
       font-size: 13px;
     }
 
     .total-title {
-      background: #fff9cc !important;
+      background: #efefef !important;
       color: #111;
       text-align: center;
       font-weight: 600;
@@ -552,11 +559,15 @@
     }
 
     .total-count {
-      background:#fff9cc !important;
+      background:#efefef !important;
       color: #083dff;
       text-align: center;
       font-weight: 600;
       font-size: 14px !important;
+    }
+
+    .route-board tfoot td:last-child {
+      background: #efefef !important;
     }
 
     .edit-on [contenteditable="true"],
