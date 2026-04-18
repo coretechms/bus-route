@@ -281,7 +281,7 @@
 
     .row-delete-cell {
       text-align: center;
-      background: #efefef !important;
+      background: #ededed !important;
     }
 
     .delete-row-btn {
@@ -450,7 +450,7 @@
 
     .route-board th:nth-child(7),
     .route-board td:nth-child(7) {
-      background: #efefef !important;
+      background: #ededed !important;
     }
 
     .route-board .title-cell {
@@ -467,7 +467,7 @@
     .title-cell .route { color: var(--title-blue); }
 
     .subhead {
-      background: #efefef !important;
+      background: #ededed !important;
       text-align: center;
       font-weight: 800;
     }
@@ -477,7 +477,7 @@
     }
 
     .region {
-      background: #efefef !important;
+      background: #ededed !important;
       text-align: center;
       font-weight: 400;
       font-size: 20px;
@@ -544,14 +544,14 @@
     }
 
     .total-label {
-      background: #efefef !important;
+      background: #ededed !important;
       text-align: center;
       font-weight: 900;
       font-size: 13px;
     }
 
     .total-title {
-      background: #efefef !important;
+      background: #ededed !important;
       color: #111;
       text-align: center;
       font-weight: 600;
@@ -559,7 +559,7 @@
     }
 
     .total-count {
-      background:#efefef !important;
+      background:#ededed !important;
       color: #083dff;
       text-align: center;
       font-weight: 600;
@@ -567,7 +567,7 @@
     }
 
     .route-board tfoot td:last-child {
-      background: #efefef !important;
+      background: #ededed !important;
     }
 
     .edit-on [contenteditable="true"],
@@ -2237,12 +2237,26 @@ ${newCode}
     function renderBoard() {
       routeTbody.innerHTML = "";
       const groupedRows = groupRows(state.rows);
+      const grayRowColor = "#ededed";
+      const isGrayStopRow = (rowOrder) => ((rowOrder + 1) % 2 === 0);
+      const applyGrayRowCell = (cell) => {
+        if (!cell) return cell;
+        cell.style.background = grayRowColor;
+        cell.style.backgroundColor = grayRowColor;
+        const fields = cell.querySelectorAll('input, textarea');
+        fields.forEach((field) => {
+          field.style.background = 'transparent';
+          field.style.backgroundColor = 'transparent';
+        });
+        return cell;
+      };
 
       let renderIndex = 0;
       groupedRows.forEach((row) => {
         const index = row.sourceIndex;
         const is29th = renderIndex === 28; // 화면 기준 29번째
         const tr = document.createElement("tr");
+        const isGrayRow = isGrayStopRow(renderIndex);
         const isEmptyNames = !normalizeNames(row.names).trim();
         if (isEmptyNames) tr.classList.add("names-empty-row");
         renderIndex++;
@@ -2278,6 +2292,7 @@ ${newCode}
           syncMappingTitle(index, value, "stop");
           scheduleRemoteSave();
         });
+        if (isGrayRow) applyGrayRowCell(stopTd);
 stopTd.style.color = isEmptyNames ? "#ddd" : "";
         tr.appendChild(stopTd);
 
@@ -2306,6 +2321,7 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
           renderBoard();
           scheduleRemoteSave();
         });
+        if (isGrayRow) applyGrayRowCell(moveTd);
         moveTd.style.color = isEmptyNames ? "#000" : "";
         tr.appendChild(moveTd);
 
@@ -2322,15 +2338,18 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
           renderBoard();
           scheduleRemoteSave();
         });
+        if (isGrayRow) applyGrayRowCell(rideTd);
         rideTd.style.color = isEmptyNames ? "#ddd" : "";
         tr.appendChild(rideTd);
 
-        tr.appendChild(makeEditableTextAreaCell(row.names, "names-cell", adminMode, (value) => {
+        const namesTd = makeEditableTextAreaCell(row.names, "names-cell", adminMode, (value) => {
           state.rows[index].names = normalizeNames(value);
           state.rows[index].count = countPeople(state.rows[index].names);
           updateSummary();
           scheduleRemoteSave();
-        }));
+        });
+        if (isGrayRow) applyGrayRowCell(namesTd);
+        tr.appendChild(namesTd);
 
         const countTd = makeEditableCell(String(row.count), "count-cell", adminMode, (value) => {
           const num = Number(String(value).replace(/[^0-9]/g, "")) || 0;
@@ -2341,7 +2360,7 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
 
         // 🔥 0일 때는 숫자만 숨기고, 칸 배경색은 그대로 유지
         const countInput = countTd.querySelector("input");
-        countTd.style.background = "var(--beige)";
+        countTd.style.background = isGrayRow ? grayRowColor : "var(--beige)";
         if (Number(row.count) === 0) {
           if (countInput) {
             countInput.style.color = "transparent";
@@ -2389,6 +2408,7 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
           if (adminMode) deleteBtn.style.marginLeft = "6px";
           deleteCell.appendChild(deleteBtn);
         }
+        if (isGrayRow) applyGrayRowCell(deleteCell);
         tr.appendChild(deleteCell);
 
                 
