@@ -1208,6 +1208,8 @@
       <div class="toolbar-box">
         <div class="toolbar-left">
           <button id="adminAllBtn" class="btn btn-exit">관리자</button>
+          <button id="preLoginCaptureMainBtn" class="btn btn-capture">캡쳐</button>
+          <button id="preLoginScheduleMainBtn" class="btn btn-capture">시간표</button>
           <button id="addRowBtn" class="btn admin-only">행 추가</button>
           <button id="deleteModeBtn" class="btn admin-only">행삭제</button>
           <button id="saveBtn" class="btn admin-only">내용저장</button>
@@ -1538,6 +1540,8 @@
     const resetBtn = document.getElementById("resetBtn");
     const captureToolbarBtn = document.getElementById("captureToolbarBtn");
     const captureScheduleBtn = document.getElementById("captureScheduleBtn");
+    const preLoginCaptureMainBtn = document.getElementById("preLoginCaptureMainBtn");
+    const preLoginScheduleMainBtn = document.getElementById("preLoginScheduleMainBtn");
     const passwordChangeModeBtn = document.getElementById("passwordChangeModeBtn");
     const adminAllBtn = document.getElementById("adminAllBtn");
     const deleteModeBtn = document.getElementById("deleteModeBtn");
@@ -3339,6 +3343,18 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
     captureScheduleBtn.addEventListener("click", async () => {
       await runScheduleCapture(captureScheduleBtn);
     });
+
+    if (preLoginCaptureMainBtn) {
+      preLoginCaptureMainBtn.addEventListener("click", async () => {
+        await runMainCapture(preLoginCaptureMainBtn);
+      });
+    }
+
+    if (preLoginScheduleMainBtn) {
+      preLoginScheduleMainBtn.addEventListener("click", async () => {
+        await runScheduleCapture(preLoginScheduleMainBtn);
+      });
+    }
 
     if (passwordCaptureBtn) {
       passwordCaptureBtn.addEventListener("click", async () => {
