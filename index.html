@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=0.6, minimum-scale=0.2, maximum-scale=5.0, user-scalable=yes" />
-  <title>   </title>
+  <title>탑승장_JSON백업복구</title>
   <style>
     :root {
       /* ⭐ mapping 사이즈 직접 숫자 조절 */
@@ -1165,6 +1165,21 @@
     }
 
 
+
+    /* JSON 백업/복구 버튼 표시 */
+    body.admin-visible #routeDataBackupBtn,
+    body.admin-visible #routeDataRestoreBtn {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-height: 42px !important;
+      height: 42px !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      line-height: 1.2 !important;
+      white-space: nowrap !important;
+    }
+
   </style>
 </head>
 <body>
@@ -1231,7 +1246,10 @@
           <h2 class="mapping-header-title">탑승장 데이터</h2>
           <div class="toolbar-right mapping-header-controls">
             <button id="addMappingBtn" class="btn admin-only">탑승장 추가</button>
+            <button id="routeDataBackupBtn" class="btn admin-only">데이터백업</button>
+            <button id="routeDataRestoreBtn" class="btn admin-only">데이터복구</button>
             <button id="mappingResetBtn" class="btn admin-only">데이터 초기화</button>
+            <input id="routeDataRestoreFile" type="file" accept="application/json,.json" style="display:none">
             <span id="modeText" class="muted">보기 전용</span>
           </div>
         </div>
@@ -1397,36 +1415,8 @@
     const defaultData = {
       titleFull: ' ',
       footerNote: "",
-      rows: [
-        { region: "청라", stop: "동양 엔파트", move: "", ride: "5:23", names: "", count: 0, note: "" },
-        { region: "청라", stop: "한신더휴 건너편", move: "0:04", ride: "5:27", names: "", count: 0, note: "" },
-        { region: "청라", stop: "대광 로제비앙 4거리", move: "0:03", ride: "5:30", names: "", count: 0, note: "" },
-        { region: "청라", stop: "제일 풍경채 2차 횡단보도", move: "0:08", ride: "5:38", names: "", count: 0, note: "" },
-        { region: "경서동", stop: "푸르지오", move: "0:06", ride: "5:44", names: "", count: 0, note: "" },
-        { region: "경서동", stop: "태평아파트", move: "0:04", ride: "5:48", names: "", count: 0, note: "" },
-        { region: "경서동", stop: "아시아드 대광", move: "0:03", ride: "5:51", names: "", count: 0, note: "" },
-        { region: "검암1지구", stop: "서곶 지구대", move: "0:03", ride: "5:54", names: "", count: 0, note: "" },
-        { region: "검암1지구", stop: "서해그랑블 앞", move: "0:06", ride: "6:00", names: "", count: 0, note: "" },
-        { region: "검암2지구", stop: "에스알 마트 앞", move: "0:07", ride: "6:07", names: "", count: 0, note: "" },
-        { region: "공촌동", stop: "공촌 4거리", move: "0:08", ride: "6:15", names: "", count: 0, note: "" },
-        { region: "계산동", stop: "천년뷔페 앞", move: "0:10", ride: "6:25", names: "", count: 0, note: "" },
-        { region: "용종동", stop: "용종마을", move: "0:05", ride: "6:30", names: "", count: 0, note: "" }
-      ],
-      mapping: [
-        { title: "청라|동양 엔파트", people: "곽중섭 김연숙" },
-        { title: "청라|한신더휴 건너편", people: "이순표 백순이 김경심 홍종숙 김근배 김미점 " },
-        { title: "청라|대광 로제비앙 4거리", people: "박광수" },
-        { title: "청라|제일 풍경채 2차 횡단보도", people: "정래훈" },
-        { title: "경서동|푸르지오", people: "김진권" },
-        { title: "경서동|태평아파트", people: "김성기 유순애 김민숙" },
-        { title: "경서동|아시아드 대광", people: "방경호 최정아 박산식 전기준 김성환 김영태 최선화 박영석 김성기 유순애 김민숙" },
-        { title: "검암1지구|서곶 지구대", people: "윤미숙" },
-        { title: "검암1지구|서해그랑블 앞", people: "권오복 정순자 권재석 윤순찬 소현미 한경문 최미순 이선례 김금숙 김미정 이주일 김행숙 장오섭 신남희 정명구 김옥희 김순애 이명훈" },
-        { title: "검암2지구|에스알 마트 앞", people: "강경배 김대옥 정석화 최경화 김미옥 변광철 임선옥 박귀례 양은미 위임자 박정란 윤분순 이설 정영애 허영지 김금순 김진경 김경애 신승원 강광래 전원석 장화순 이하은 이승자 황효진 김순애 신대경 정기현 함인자 이수헌 송혜숙" },
-        { title: "공촌동|공촌 4거리", people: "이미영 박창복 서민자 박수진 최광주 이상욱 김소정 김언희 장순임" },
-        { title: "계산동|천년뷔페 앞", people: "박현규 이경순 배금열 한연석 장기산 오흥주 최경임 김정희 김옥란 이영옥 김인옥 염홍숙 이기춘 김현숙 이명순 이화연 정명옥 이옥선 정민숙 김미자 우복님 김종애 이영순 김영애 이순열 정미자 김기현 조영도 아영" },
-        { title: "용종동|용종마을", people: "박영순 이수헌 정상윤" }
-      ],
+      rows: [],
+      mapping: [],
       importedNames: "",
       seatMainTitle: ""
     };
@@ -1547,6 +1537,9 @@
     const deleteModeBtn = document.getElementById("deleteModeBtn");
     const addRowBtn = document.getElementById("addRowBtn");
     const addMappingBtn = document.getElementById("addMappingBtn");
+    const routeDataBackupBtn = document.getElementById("routeDataBackupBtn");
+    const routeDataRestoreBtn = document.getElementById("routeDataRestoreBtn");
+    const routeDataRestoreFile = document.getElementById("routeDataRestoreFile");
     const mappingResetBtn = document.getElementById("mappingResetBtn");
     const footerNoteInput = document.getElementById("footerNoteInput");
     const importedNamesBox = document.getElementById("importedNamesBox");
@@ -2046,6 +2039,118 @@ ${newCode}
       requestAnimationFrame(() => {
         isApplyingRemoteState = false;
       });
+    }
+
+    function splitMappingTitle(title) {
+      const parts = String(title || "").split("|");
+      return {
+        region: String(parts[0] || "").trim(),
+        stop: String(parts.slice(1).join("|") || "").trim()
+      };
+    }
+
+    function joinMappingTitle(region, stop) {
+      const r = String(region || "").trim();
+      const s = String(stop || "").trim();
+      return r || s ? `${r}|${s}` : "";
+    }
+
+    function getMappingOnlyBackupItems() {
+      const source = Array.isArray(state.mapping) ? state.mapping : [];
+      return source.map((item) => {
+        const titleParts = splitMappingTitle(item && item.title);
+        return {
+          region: titleParts.region,
+          stop: titleParts.stop,
+          names: String(item && item.people || "").trim()
+        };
+      }).filter((item) => item.region || item.stop || item.names);
+    }
+
+    function getRouteDataBackupPayload() {
+      return {
+        type: "bus-route-mapping-only-backup",
+        version: "2.0",
+        savedAt: new Date().toISOString(),
+        description: "탑승장 데이터 박스의 지역/승차지점/이름만 저장한 JSON 백업입니다.",
+        data: {
+          mapping: getMappingOnlyBackupItems()
+        }
+      };
+    }
+
+    function normalizeRouteDataBackup(raw) {
+      const source = raw && raw.data && typeof raw.data === "object" ? raw.data : raw;
+      if (!source || typeof source !== "object") return null;
+
+      let rawMapping = [];
+      if (Array.isArray(source.mapping)) rawMapping = source.mapping;
+      else if (Array.isArray(source.items)) rawMapping = source.items;
+      else if (Array.isArray(raw)) rawMapping = raw;
+
+      const mapping = rawMapping.map((item) => {
+        const titleText = String(item && item.title || "").trim();
+        const titleParts = splitMappingTitle(titleText);
+        const region = String(item && item.region || titleParts.region || "").trim();
+        const stop = String(item && (item.stop || item.stopName || item.승차지점) || titleParts.stop || "").trim();
+        const names = String(item && (item.names || item.people || item.이름) || "").trim();
+        return {
+          title: joinMappingTitle(region, stop),
+          people: names
+        };
+      }).filter((item) => item.title || item.people);
+
+      if (!mapping.length) return null;
+      return { mapping };
+    }
+
+    function backupRouteDataJson() {
+      const payload = getRouteDataBackupPayload();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      a.href = URL.createObjectURL(blob);
+      a.download = "탑승장_지역승차지점이름_백업_" + stamp + ".json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 0);
+      if (routeDataBackupBtn) flashButton(routeDataBackupBtn);
+    }
+
+    function restoreRouteDataJsonFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const parsed = JSON.parse(String(reader.result || ""));
+          const next = normalizeRouteDataBackup(parsed);
+          if (!next) {
+            alert("복구할 수 있는 탑승장 JSON 데이터가 아닙니다. 지역/승차지점/이름 데이터가 필요합니다.");
+            return;
+          }
+
+          // JSON 복구는 탑승장 데이터 박스(mapping)만 갱신합니다.
+          // 상단 운행표 UI(state.rows)의 탑승자 명단/인원에는 이름을 삽입하지 않습니다.
+          state.mapping = next.mapping;
+
+          renderMapping();
+          resizeAllTextareas();
+          persistLocalOnly();
+
+          if (firebaseDb && !isApplyingRemoteState) {
+            await firebaseDb.ref(REMOTE_BOARD_PATH).set(getRemotePayload());
+          }
+
+          if (routeDataRestoreFile) routeDataRestoreFile.value = "";
+          if (routeDataRestoreBtn) flashButton(routeDataRestoreBtn);
+          alert("탑승장 데이터 박스에만 이름 JSON 복구가 완료되었습니다. 상단 운행표에는 이름을 삽입하지 않았습니다.");
+        } catch (error) {
+          console.error("탑승장 JSON 복구 오류:", error);
+          alert("JSON 데이터 파일을 읽지 못했습니다.");
+        }
+      };
+      reader.readAsText(file, "utf-8");
     }
 
     async function saveData() {
@@ -3142,17 +3247,56 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
         return;
       }
 
-      confirmMessage.textContent = "탑승장 데이터를 코드 내부 기본값으로 초기화할까요?";
+      confirmMessage.textContent = "탑승장 지역/승차지점 박스는 그대로 두고 이름 데이터만 초기화할까요? 필요하면 먼저 [데이터백업]으로 지역/승차지점/이름 JSON 파일을 저장하세요.";
       pendingConfirmAction = async () => {
-        state.mapping = safeClone(defaultData.mapping);
-        state.importedNames = String(defaultData.importedNames || "");
+        // 지역/승차지점 카드 구조는 유지하고, 이름 데이터만 비웁니다.
+        state.mapping = (Array.isArray(state.mapping) ? state.mapping : []).map((item) => ({
+          title: String(item && item.title || ""),
+          people: ""
+        }));
+
+        // 메인 운행표도 행/지역/승차지점/시간은 유지하고 탑승자 이름과 인원만 초기화합니다.
+        state.rows = (Array.isArray(state.rows) ? state.rows : []).map((row) => ({
+          ...row,
+          names: "",
+          count: 0
+        }));
+
+        state.importedNames = "";
+        renderBoard();
         renderMapping();
         resizeAllTextareas();
-        await saveData();
+        persistLocalOnly();
+        if (firebaseDb && !isApplyingRemoteState) {
+          await firebaseDb.ref(REMOTE_BOARD_PATH).set(getRemotePayload());
+        }
         flashButton(mappingResetBtn);
       };
       confirmOverlay.classList.add("show");
     });
+
+    if (routeDataBackupBtn) {
+      routeDataBackupBtn.addEventListener("click", () => {
+        if (!document.body.classList.contains("admin-visible")) {
+          alert("먼저 관리자모드로 로그인하세요.");
+          return;
+        }
+        backupRouteDataJson();
+      });
+    }
+
+    if (routeDataRestoreBtn && routeDataRestoreFile) {
+      routeDataRestoreBtn.addEventListener("click", () => {
+        if (!document.body.classList.contains("admin-visible")) {
+          alert("먼저 관리자모드로 로그인하세요.");
+          return;
+        }
+        routeDataRestoreFile.click();
+      });
+      routeDataRestoreFile.addEventListener("change", (event) => {
+        restoreRouteDataJsonFile(event.target.files && event.target.files[0]);
+      });
+    }
 
     addRowBtn.addEventListener("click", () => {
       openInsertDialog(state.rows.length);
