@@ -1319,8 +1319,12 @@
           <select id="mappingPositionSelect"></select>
         </label>
         <label>
-          제목
-          <input id="mappingTitleInput" type="text" value="" placeholder="명단 제목 입력" />
+          지역
+          <input id="mappingRegionInput" type="text" value="" placeholder="지역 입력" />
+        </label>
+        <label>
+          승차지점
+          <input id="mappingStopInput" type="text" value="" placeholder="승차지점 입력" />
         </label>
       </div>
       <div class="insert-actions">
@@ -1561,7 +1565,8 @@
     const insertOkBtn = document.getElementById("insertOkBtn");
     const mappingInsertOverlay = document.getElementById("mappingInsertOverlay");
     const mappingPositionSelect = document.getElementById("mappingPositionSelect");
-    const mappingTitleInput = document.getElementById("mappingTitleInput");
+    const mappingRegionInput = document.getElementById("mappingRegionInput");
+    const mappingStopInput = document.getElementById("mappingStopInput");
     const mappingInsertCancelBtn = document.getElementById("mappingInsertCancelBtn");
     const mappingInsertOkBtn = document.getElementById("mappingInsertOkBtn");
     const passwordOverlay = document.getElementById("passwordOverlay");
@@ -3326,8 +3331,12 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
 
     function openMappingInsertDialog() {
       buildMappingInsertOptions();
-      mappingTitleInput.value = "";
+      if (mappingRegionInput) mappingRegionInput.value = "";
+      if (mappingStopInput) mappingStopInput.value = "";
       mappingInsertOverlay.classList.add("show");
+      setTimeout(() => {
+        if (mappingRegionInput) mappingRegionInput.focus();
+      }, 0);
     }
 
     function closeMappingInsertDialog() {
@@ -3341,9 +3350,28 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
 
     mappingInsertCancelBtn.addEventListener("click", closeMappingInsertDialog);
 
+    [mappingRegionInput, mappingStopInput].forEach((input) => {
+      if (!input) return;
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          mappingInsertOkBtn.click();
+        }
+      });
+    });
+
     mappingInsertOkBtn.addEventListener("click", () => {
       const idx = Number(mappingPositionSelect.value);
-      const title = mappingTitleInput.value.trim() || `명단 데이터 ${state.mapping.length + 1}`;
+      const region = String(mappingRegionInput?.value || "").trim();
+      const stop = String(mappingStopInput?.value || "").trim();
+
+      if (!region && !stop) {
+        alert("지역 또는 승차지점을 입력하세요.");
+        if (mappingRegionInput) mappingRegionInput.focus();
+        return;
+      }
+
+      const title = joinMappingTitle(region, stop) || `명단 데이터 ${state.mapping.length + 1}`;
       state.mapping.splice(idx, 0, { title, people: "" });
       renderMapping();
       closeMappingInsertDialog();
