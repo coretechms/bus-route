@@ -1180,6 +1180,59 @@
       white-space: nowrap !important;
     }
 
+
+    /* ===== 관리자/편집 버튼 그룹 토글 ===== */
+    .group-toggle-only,
+    .button-subgroup {
+      display: none !important;
+    }
+
+    body.admin-visible .group-toggle-only {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-height: 42px !important;
+      height: 42px !important;
+      padding: 0 12px !important;
+      line-height: 1.2 !important;
+      white-space: nowrap !important;
+    }
+
+    body.admin-visible.admin-group-open #adminButtonGroup,
+    body.admin-visible.edit-group-open #editButtonGroup {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex-wrap: wrap !important;
+      gap: 8px !important;
+    }
+
+    .button-subgroup .btn {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-height: 42px !important;
+      height: 42px !important;
+      padding: 0 10px !important;
+      line-height: 1.2 !important;
+      white-space: nowrap !important;
+    }
+
+    body.admin-visible #adminGroupToggleBtn.active,
+    body.admin-visible #editGroupToggleBtn.active {
+      background: #0b6bff !important;
+      border-color: #0b6bff !important;
+      color: #fff !important;
+    }
+
+    @media (max-width: 1000px) {
+      body.admin-visible.admin-group-open #adminButtonGroup,
+      body.admin-visible.edit-group-open #editButtonGroup {
+        width: 100% !important;
+        justify-content: center !important;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -1225,16 +1278,25 @@
           <button id="adminAllBtn" class="btn btn-exit">관리자</button>
           <button id="preLoginCaptureMainBtn" class="btn btn-capture">캡쳐</button>
           <button id="preLoginScheduleMainBtn" class="btn btn-capture">시간표</button>
-          <button id="addRowBtn" class="btn admin-only">행 추가</button>
-          <button id="deleteModeBtn" class="btn admin-only">행삭제</button>
-          <button id="saveBtn" class="btn admin-only">내용저장</button>
-           <button id="resetBtn" class="btn admin-only">초기화</button>
-          <button id="passwordChangeModeBtn" type="button" class="btn admin-only">비번변경</button>
-          <button id="passwordRecoveryGenerateBtn" type="button" class="btn admin-only" style="background:#1f9d45; border-color:#1f9d45; color:#fff;">복구코드생성</button>
-                      <button id="adminToggle" class="btn btn-admin admin-only">편집 활성화</button>
-          <button id="captureToolbarBtn" class="btn btn-capture admin-only">캡쳐</button>
-          <button id="captureScheduleBtn" class="btn btn-capture admin-only">시간표캡쳐</button>
+          <button id="adminGroupToggleBtn" class="btn group-toggle-only" type="button">관리자</button>
+          <button id="editGroupToggleBtn" class="btn group-toggle-only" type="button">편집</button>
 
+          <span id="adminButtonGroup" class="button-subgroup admin-button-group">
+            <button id="resetBtn" class="btn">초기화</button>
+            <button id="passwordChangeModeBtn" type="button" class="btn">비번변경</button>
+            <button id="passwordRecoveryGenerateBtn" type="button" class="btn" style="background:#1f9d45; border-color:#1f9d45; color:#fff;">복구코드생성</button>
+            <button id="routeDataBackupBtn" class="btn">데이터백업</button>
+            <button id="routeDataRestoreBtn" class="btn">데이터복구</button>
+            <button id="mappingResetBtn" class="btn">데이터초기화</button>
+          </span>
+
+          <span id="editButtonGroup" class="button-subgroup edit-button-group">
+            <button id="addRowBtn" class="btn">행 추가</button>
+            <button id="deleteModeBtn" class="btn">행삭제</button>
+            <button id="saveBtn" class="btn">내용저장</button>
+            <button id="adminToggle" class="btn btn-admin">편집 활성화</button>
+            <button id="addMappingBtn" class="btn">탑승장 추가</button>
+          </span>
         </div>
         <div class="toolbar-right"></div>
       </div>
@@ -1245,10 +1307,6 @@
         <div class="mapping-header">
           <h2 class="mapping-header-title">탑승장 데이터</h2>
           <div class="toolbar-right mapping-header-controls">
-            <button id="addMappingBtn" class="btn admin-only">탑승장 추가</button>
-            <button id="routeDataBackupBtn" class="btn admin-only">데이터백업</button>
-            <button id="routeDataRestoreBtn" class="btn admin-only">데이터복구</button>
-            <button id="mappingResetBtn" class="btn admin-only">데이터 초기화</button>
             <input id="routeDataRestoreFile" type="file" accept="application/json,.json" style="display:none">
             <span id="modeText" class="muted">보기 전용</span>
           </div>
@@ -1538,6 +1596,8 @@
     const preLoginScheduleMainBtn = document.getElementById("preLoginScheduleMainBtn");
     const passwordChangeModeBtn = document.getElementById("passwordChangeModeBtn");
     const adminAllBtn = document.getElementById("adminAllBtn");
+    const adminGroupToggleBtn = document.getElementById("adminGroupToggleBtn");
+    const editGroupToggleBtn = document.getElementById("editGroupToggleBtn");
     const deleteModeBtn = document.getElementById("deleteModeBtn");
     const addRowBtn = document.getElementById("addRowBtn");
     const addMappingBtn = document.getElementById("addMappingBtn");
@@ -1813,7 +1873,22 @@ ${newCode}
       modeText.textContent = `> ${adminMode ? "O" : "X"}${deleteMode ? " / 행 삭제 모드" : ""}`;
       document.body.classList.toggle("edit-on", adminMode);
       if (deleteHeader) deleteHeader.textContent = adminMode ? "삭제" : "";
+      updateButtonGroupUi();
 
+    }
+
+    function updateButtonGroupUi() {
+      const adminVisible = document.body.classList.contains("admin-visible");
+      const adminGroupOpen = document.body.classList.contains("admin-group-open");
+      const editGroupOpen = document.body.classList.contains("edit-group-open");
+      if (adminGroupToggleBtn) {
+        adminGroupToggleBtn.classList.toggle("active", adminVisible && adminGroupOpen);
+        adminGroupToggleBtn.textContent = adminGroupOpen ? "관리자닫기" : "관리자";
+      }
+      if (editGroupToggleBtn) {
+        editGroupToggleBtn.classList.toggle("active", adminVisible && editGroupOpen);
+        editGroupToggleBtn.textContent = editGroupOpen ? "편집닫기" : "편집";
+      }
     }
 
     function closePasswordDialog() {
@@ -1941,6 +2016,7 @@ ${newCode}
           return;
         }
         document.body.classList.add("admin-visible");
+        document.body.classList.remove("admin-group-open", "edit-group-open");
         updateAdminUi();
         applyStopColumnSizeInputs();
         renderBoard();
@@ -3111,6 +3187,31 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
       scheduleRemoteSave();
     }
 
+
+    if (adminGroupToggleBtn) {
+      adminGroupToggleBtn.addEventListener("click", () => {
+        if (!document.body.classList.contains("admin-visible")) {
+          alert("먼저 관리자모드로 로그인하세요.");
+          return;
+        }
+        document.body.classList.toggle("admin-group-open");
+        updateButtonGroupUi();
+        flashButton(adminGroupToggleBtn);
+      });
+    }
+
+    if (editGroupToggleBtn) {
+      editGroupToggleBtn.addEventListener("click", () => {
+        if (!document.body.classList.contains("admin-visible")) {
+          alert("먼저 관리자모드로 로그인하세요.");
+          return;
+        }
+        document.body.classList.toggle("edit-group-open");
+        updateButtonGroupUi();
+        flashButton(editGroupToggleBtn);
+      });
+    }
+
     adminAllBtn.addEventListener("click", () => {
       const adminVisible = document.body.classList.contains("admin-visible");
       if (!adminVisible) {
@@ -3118,7 +3219,7 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
         return;
       }
 
-      document.body.classList.remove("admin-visible");
+      document.body.classList.remove("admin-visible", "admin-group-open", "edit-group-open");
       adminMode = false;
       deleteMode = false;
       deleteModeBtn.classList.remove("active", "btn-delete");
@@ -3508,13 +3609,17 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
       }
     }
 
-    captureToolbarBtn.addEventListener("click", async () => {
-      await runMainCapture(captureToolbarBtn);
-    });
+    if (captureToolbarBtn) {
+      captureToolbarBtn.addEventListener("click", async () => {
+        await runMainCapture(captureToolbarBtn);
+      });
+    }
 
-    captureScheduleBtn.addEventListener("click", async () => {
-      await runScheduleCapture(captureScheduleBtn);
-    });
+    if (captureScheduleBtn) {
+      captureScheduleBtn.addEventListener("click", async () => {
+        await runScheduleCapture(captureScheduleBtn);
+      });
+    }
 
     if (preLoginCaptureMainBtn) {
       preLoginCaptureMainBtn.addEventListener("click", async () => {
