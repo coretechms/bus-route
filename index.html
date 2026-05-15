@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=0.6, minimum-scale=0.2, maximum-scale=5.0, user-scalable=yes" />
-  <title>탑승장_JSON백업복구</title>
+  <title>5/17 전남 곡성 “동악산”</title>
   <style>
     :root {
       /* ⭐ mapping 사이즈 직접 숫자 조절 */
@@ -1595,8 +1595,21 @@
     }
 
     function extractBusSeatInfoTitleMain(snapshotValue) {
-      if (!snapshotValue || typeof snapshotValue !== "object") return "";
-      return normalizeSeatMainTitle(snapshotValue?.busInfo?.titleMain || "");
+      if (snapshotValue == null) return "";
+      if (typeof snapshotValue !== "object") return normalizeSeatMainTitle(snapshotValue);
+
+      // bus-seat 쪽 제목 저장 위치가 버전별로 달라질 수 있어 최신 구조를 우선 검색
+      const candidate =
+        snapshotValue?.busInfo?.titleMain ||
+        snapshotValue?.shared?.mainTitle ||
+        snapshotValue?.shared?.titleFull ||
+        snapshotValue?.shared?.title ||
+        snapshotValue?.mainTitle ||
+        snapshotValue?.titleMain ||
+        snapshotValue?.titleFull ||
+        snapshotValue?.title ||
+        "";
+      return normalizeSeatMainTitle(candidate);
     }
 
     function extractSeatMainTitleFromStorageValue(raw) {
@@ -1681,8 +1694,9 @@
     }
 
     function syncDocumentTitleFromState() {
-      const full = String(state.titleFull || defaultData.titleFull || "").trim();
-      document.title = full;
+      // 브라우저 탭 제목도 화면 상단 제목과 동일하게 최신값으로 동기화
+      const full = composeBoardHeading();
+      document.title = full || String(defaultData.titleFull || "").trim();
     }
 
     let state = loadData();
@@ -2556,7 +2570,6 @@ ${newCode}
           const localJson = JSON.stringify({
             titleFull: String(state.titleFull || "").trim(),
             seatMainTitle: String(state.seatMainTitle || "").trim(),
-        seatMainTitle: String(state.seatMainTitle || "").trim(),
             footerNote: String(state.footerNote || ""),
             rows: Array.isArray(state.rows) ? state.rows : [],
             mapping: Array.isArray(state.mapping) ? state.mapping : [],
