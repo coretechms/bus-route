@@ -4258,5 +4258,403 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
     renderMapping();
     resizeAllTextareas();
     bootFirebaseRealtime();
-  </script></body>
+  </script>
+<script>
+/* ===== 탑승자 이름 1.5초 길게누름: 회원명부 연락처로 전화/문자 선택 ===== */
+(function(){
+  const HOLD_MS = 1500;
+  const MOVE_LIMIT = 12;
+
+  const MEMBER_FIREBASE_CONFIG = {
+    apiKey: "AIzaSyBRxAdYRyjMIcQvCQ2ja7YOkdFGNCkW1cE",
+    authDomain: "member-b458f.firebaseapp.com",
+    databaseURL: "https://member-b458f-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "member-b458f",
+    storageBucket: "member-b458f.firebasestorage.app",
+    messagingSenderId: "399411166551",
+    appId: "1:399411166551:web:3c693da51daaa042751212"
+  };
+  const MEMBER_FIREBASE_PATH = "memberList/main";
+  const MEMBER_LOCAL_KEYS = [
+    "memberList.htmlForm.v3.safe",
+    "memberList.htmlForm.v1",
+    "memberList.htmlForm.v2",
+    "memberListData",
+    "memberData",
+    "members",
+    "tableData",
+    "member-list-data",
+    "회원명부",
+    "회원명부데이터"
+  ];
+
+  let memberRowsCache = [];
+  let memberLoadStarted = false;
+  let holdTimer = null;
+  let activeTarget = null;
+  let startX = 0;
+  let startY = 0;
+  let moved = false;
+  let lastTriggeredAt = 0;
+
+  function injectStyles(){
+    if(document.getElementById("routeNamePhoneSmsStyle")) return;
+    const style = document.createElement("style");
+    style.id = "routeNamePhoneSmsStyle";
+    style.textContent = `
+      .route-name-action-overlay{
+        position:fixed; inset:0; z-index:2147483647;
+        display:flex; align-items:center; justify-content:center;
+        background:rgba(0,0,0,.28); padding:14px;
+      }
+      .route-name-action-dialog{
+        width:min(390px, calc(100vw - 24px));
+        background:#fff; border:1px solid #d4d4d4; border-radius:22px;
+        box-shadow:0 10px 34px rgba(0,0,0,.22);
+        padding:18px; text-align:center;
+        font-family:"Malgun Gothic","Apple SD Gothic Neo",Arial,sans-serif;
+      }
+      .route-name-action-title{font-size:17px;font-weight:800;margin-bottom:8px;color:#111;}
+      .route-name-action-message{white-space:pre-line;line-height:1.55;font-size:14px;color:#222;margin-bottom:16px;}
+      .route-name-action-buttons{display:grid;grid-template-columns:1fr;gap:8px;}
+      .route-name-action-buttons button{
+        width:100%; height:40px; border-radius:14px; border:1px solid #d4d4d4;
+        background:#fff; color:#111; font-size:14px; font-weight:800;
+        font-family:inherit; cursor:pointer;
+      }
+      .route-name-action-buttons .call{background:#111827;border-color:#111827;color:#fff;}
+      .route-name-action-buttons .sms{background:#2563eb;border-color:#2563eb;color:#fff;}
+      .route-name-action-buttons .cancel{background:#fff;color:#555;}
+      .route-name-action-toast{
+        position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+        z-index:2147483647; min-width:180px; max-width:90vw; padding:10px 14px;
+        border-radius:999px; background:rgba(17,24,39,.94); color:#fff;
+        font-size:13px; font-weight:800; text-align:center; pointer-events:none;
+        box-shadow:0 6px 18px rgba(0,0,0,.22);
+      }
+      @media(max-width:760px){
+        .route-name-action-dialog{padding:14px;border-radius:18px;}
+        .route-name-action-title{font-size:15px;}
+        .route-name-action-message{font-size:13px;}
+        .route-name-action-buttons button{height:36px;font-size:13px;}
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function showToast(message){
+    const old = document.getElementById("routeNameActionToast");
+    if(old) old.remove();
+    const toast = document.createElement("div");
+    toast.id = "routeNameActionToast";
+    toast.className = "route-name-action-toast";
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    clearTimeout(window.__routeNameActionToastTimer);
+    window.__routeNameActionToastTimer = setTimeout(function(){ toast.remove(); }, 1500);
+  }
+
+  function escapeHtml(text){
+    return String(text || "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#39;");
+  }
+
+  function normalizeNameText(value){
+    return String(value || "")
+      .replace(/[^가-힣0-9\s]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function cleanPhone(value){
+    return String(value || "").replace(/[^0-9]/g, "");
+  }
+
+  function formatPhone(phone){
+    const n = cleanPhone(phone);
+    if(n.length === 11) return n.replace(/(\d{3})(\d{4})(\d{4})/, "$1-$2-$3");
+    if(n.length === 10) return n.replace(/(\d{3})(\d{3})(\d{4})/, "$1-$2-$3");
+    return n || "";
+  }
+
+  function safeJsonParse(raw){
+    try { return JSON.parse(raw); } catch(error) { return null; }
+  }
+
+  function cellValue(cell){
+    if(cell == null) return "";
+    if(typeof cell === "string" || typeof cell === "number") return String(cell);
+    if(typeof cell === "object"){
+      return String(cell.html ?? cell.v ?? cell.text ?? cell.value ?? "");
+    }
+    return "";
+  }
+
+  function stripHtml(value){
+    const div = document.createElement("div");
+    div.innerHTML = String(value || "");
+    return div.innerText || div.textContent || "";
+  }
+
+  function extractRowsFromMemberData(raw){
+    if(!raw) return [];
+    let data = raw && raw.data ? raw.data : raw;
+    if(Array.isArray(data)) return data;
+    if(data && Array.isArray(data.rows)) return data.rows;
+    if(data && data.data && Array.isArray(data.data.rows)) return data.data.rows;
+    if(data && data.table && Array.isArray(data.table)) return data.table;
+    return [];
+  }
+
+  function loadMemberRowsFromLocal(){
+    let bestRows = [];
+    let bestScore = 0;
+    MEMBER_LOCAL_KEYS.forEach(function(key){
+      try{
+        const parsed = safeJsonParse(localStorage.getItem(key));
+        const rows = extractRowsFromMemberData(parsed);
+        const score = rows.length;
+        if(score > bestScore){
+          bestRows = rows;
+          bestScore = score;
+        }
+      }catch(error){}
+    });
+    return bestRows;
+  }
+
+  function loadMemberRowsFromFirebase(){
+    if(memberLoadStarted) return;
+    memberLoadStarted = true;
+    try{
+      if(!window.firebase || !window.firebase.database) return;
+      let app = null;
+      if(window.firebase.apps && window.firebase.apps.length){
+        app = window.firebase.apps.find(function(item){ return item && item.name === "routeNameMemberLookup"; });
+      }
+      if(!app) app = window.firebase.initializeApp(MEMBER_FIREBASE_CONFIG, "routeNameMemberLookup");
+      window.firebase.database(app).ref(MEMBER_FIREBASE_PATH).once("value").then(function(snapshot){
+        const rows = extractRowsFromMemberData(snapshot.val());
+        if(rows.length > 1) memberRowsCache = rows;
+      }).catch(function(error){
+        console.warn("회원명부 Firebase 연락처 조회 실패:", error);
+      });
+    }catch(error){
+      console.warn("회원명부 Firebase 초기화 실패:", error);
+    }
+  }
+
+  function getMemberRows(){
+    if(memberRowsCache && memberRowsCache.length > 1) return memberRowsCache;
+    const localRows = loadMemberRowsFromLocal();
+    if(localRows.length > 1){
+      memberRowsCache = localRows;
+      return memberRowsCache;
+    }
+    loadMemberRowsFromFirebase();
+    return memberRowsCache || [];
+  }
+
+  function findMemberPhoneByName(name){
+    const target = normalizeNameText(name);
+    if(!target) return "";
+    const rows = getMemberRows();
+
+    for(let i=1; i<rows.length; i++){
+      const row = rows[i] || [];
+      const rowName = normalizeNameText(stripHtml(cellValue(row[1])));
+      if(!rowName || rowName !== target) continue;
+
+      const phone = cleanPhone(stripHtml(cellValue(row[5]))) || cleanPhone(stripHtml(cellValue(row[6])));
+      if(phone.length >= 9) return phone;
+    }
+    return "";
+  }
+
+  function getActionTarget(node){
+    if(!node || !node.closest) return null;
+    const el = node.closest("textarea, .names-cell, .mapping-card, #importedNamesBox");
+    if(!el) return null;
+
+    if(el.tagName && el.tagName.toLowerCase() === "textarea") return el;
+
+    const ta = el.querySelector && el.querySelector("textarea");
+    if(ta) return ta;
+
+    return el;
+  }
+
+  function getSelectedOrTouchedName(target, point){
+    if(!target) return "";
+
+    let text = "";
+    let pos = -1;
+
+    if(target.tagName && target.tagName.toLowerCase() === "textarea"){
+      text = String(target.value || "");
+
+      const selected = text.slice(target.selectionStart || 0, target.selectionEnd || 0).trim();
+      if(selected) return normalizeNameText(selected.split(/\s+/)[0] || selected);
+
+      try{
+        target.focus({ preventScroll:true });
+      }catch(error){ try{ target.focus(); }catch(e){} }
+
+      pos = Number(target.selectionStart || 0);
+    }else{
+      text = String(target.innerText || target.textContent || "");
+    }
+
+    if(!text.trim()) return "";
+
+    if(pos < 0 || pos > text.length) pos = 0;
+
+    // 커서 주변 단어를 우선 사용하고, 실패하면 전체 이름 토큰 중 첫 번째를 사용
+    const left = text.slice(0, pos);
+    const right = text.slice(pos);
+    const leftMatch = left.match(/[가-힣0-9]+$/);
+    const rightMatch = right.match(/^[가-힣0-9]+/);
+    let candidate = ((leftMatch ? leftMatch[0] : "") + (rightMatch ? rightMatch[0] : "")).trim();
+
+    if(!candidate){
+      const tokens = text.match(/[가-힣]{2,}\d*/g) || [];
+      candidate = tokens[0] || "";
+    }
+
+    return normalizeNameText(candidate);
+  }
+
+  function closeDialog(){
+    const old = document.getElementById("routeNameActionOverlay");
+    if(old) old.remove();
+  }
+
+  function showActionDialog(name, phone){
+    closeDialog();
+    injectStyles();
+
+    const overlay = document.createElement("div");
+    overlay.id = "routeNameActionOverlay";
+    overlay.className = "route-name-action-overlay";
+    overlay.innerHTML = `
+      <div class="route-name-action-dialog" role="dialog" aria-modal="true">
+        <div class="route-name-action-title">연락 선택</div>
+        <div class="route-name-action-message">${escapeHtml(name)}\n${escapeHtml(formatPhone(phone))}</div>
+        <div class="route-name-action-buttons">
+          <button type="button" class="call" id="routeNameCallBtn">전화연결</button>
+          <button type="button" class="sms" id="routeNameSmsBtn">문자메세지</button>
+          <button type="button" class="cancel" id="routeNameCancelBtn">취소</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener("click", function(e){
+      if(e.target === overlay) closeDialog();
+    });
+    overlay.querySelector("#routeNameCallBtn").addEventListener("click", function(){
+      window.location.href = "tel:" + cleanPhone(phone);
+      closeDialog();
+    });
+    overlay.querySelector("#routeNameSmsBtn").addEventListener("click", function(){
+      window.location.href = "sms:" + cleanPhone(phone);
+      closeDialog();
+    });
+    overlay.querySelector("#routeNameCancelBtn").addEventListener("click", closeDialog);
+  }
+
+  function triggerNameAction(target, point){
+    const name = getSelectedOrTouchedName(target, point);
+    if(!name || !/[가-힣]{2,}/.test(name)){
+      showToast("이름을 선택해 주세요");
+      return;
+    }
+
+    let phone = findMemberPhoneByName(name);
+    if(!phone){
+      // Firebase 조회가 아직 안 끝난 경우 한 번 더 기다렸다 확인
+      loadMemberRowsFromFirebase();
+      setTimeout(function(){
+        phone = findMemberPhoneByName(name);
+        if(phone) showActionDialog(name, phone);
+        else showToast("회원명부 연락처 없음: " + name);
+      }, 450);
+      return;
+    }
+
+    showActionDialog(name, phone);
+  }
+
+  function cancelHold(){
+    clearTimeout(holdTimer);
+    holdTimer = null;
+    activeTarget = null;
+    moved = false;
+  }
+
+  function startHold(e){
+    if(Date.now() - lastTriggeredAt < 350) return;
+
+    const target = getActionTarget(e.target);
+    if(!target) return;
+
+    const point = e.touches && e.touches[0] ? e.touches[0] : e;
+    startX = point.clientX || 0;
+    startY = point.clientY || 0;
+    moved = false;
+    activeTarget = target;
+
+    clearTimeout(holdTimer);
+    holdTimer = setTimeout(function(){
+      if(moved || !activeTarget) return;
+      lastTriggeredAt = Date.now();
+      triggerNameAction(activeTarget, point);
+      cancelHold();
+    }, HOLD_MS);
+  }
+
+  function moveHold(e){
+    if(!activeTarget) return;
+    const point = e.touches && e.touches[0] ? e.touches[0] : e;
+    const dx = Math.abs((point.clientX || 0) - startX);
+    const dy = Math.abs((point.clientY || 0) - startY);
+    if(dx > MOVE_LIMIT || dy > MOVE_LIMIT){
+      moved = true;
+      cancelHold();
+    }
+  }
+
+  function endHold(){
+    cancelHold();
+  }
+
+  function bind(){
+    injectStyles();
+    loadMemberRowsFromFirebase();
+
+    if(document.body.dataset.routeNamePhoneSmsBind === "1") return;
+    document.body.dataset.routeNamePhoneSmsBind = "1";
+
+    document.addEventListener("pointerdown", startHold, true);
+    document.addEventListener("pointermove", moveHold, true);
+    document.addEventListener("pointerup", endHold, true);
+    document.addEventListener("pointercancel", endHold, true);
+
+    // 일부 구형 모바일 브라우저 보완
+    document.addEventListener("touchstart", startHold, {capture:true, passive:true});
+    document.addEventListener("touchmove", moveHold, {capture:true, passive:true});
+    document.addEventListener("touchend", endHold, true);
+    document.addEventListener("touchcancel", endHold, true);
+  }
+
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);
+  else bind();
+})();
+</script>
+
+</body>
 </html>
