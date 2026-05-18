@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=0.6, minimum-scale=0.2, maximum-scale=5.0, user-scalable=yes" />
-  <title> 정기산행</title>
+  <title>탑승장</title>
   <style>
     :root {
       /* ⭐ mapping 사이즈 직접 숫자 조절 */
@@ -1651,7 +1651,9 @@
     }
 
     function composeBoardHeading() {
-      return normalizeSeatMainTitle(state.seatMainTitle || state.titleFull || document.title || defaultData.titleFull);
+      // bus-route 화면 제목은 bus-seat 메인제목만 사용한다.
+      // HTML <title> 또는 bus-route 자체 저장 제목(예: 5/17 전남 곡성...)으로 되돌아가지 않게 차단.
+      return normalizeSeatMainTitle(state.seatMainTitle || "");
     }
 
     function renderBoardHeading() {
@@ -1672,6 +1674,7 @@
       if (!normalizedTitle) return;
       state.seatMainTitle = normalizedTitle;
       renderBoardHeading();
+      syncDocumentTitleFromState();
       persistLocalOnly();
     }
 
@@ -1727,13 +1730,15 @@
     }
 
     function syncDocumentTitleFromState() {
-      // 브라우저 탭 제목도 화면 상단 제목과 동일하게 최신값으로 동기화
+      // 브라우저 탭 제목도 bus-seat 메인제목 기준으로만 동기화
       const full = composeBoardHeading();
-      document.title = full || String(defaultData.titleFull || "").trim();
+      document.title = full || "탑승장";
     }
 
     let state = loadData();
     state.seatMainTitle = String(state.seatMainTitle || getSeatMainTitleFromLocalStorage() || "").trim();
+    // 과거 bus-route 기본 제목이 localStorage/Firebase에 남아 있어도 화면 제목으로 쓰지 않음
+    state.titleFull = "";
     let adminMode = false;
     let deleteMode = false;
 
@@ -2347,13 +2352,13 @@ ${newCode}
           ? importedNamesSaved
           : String(base.importedNames || defaultData.importedNames || "");
 
-        const parsed = parseDocumentTitleParts();
-        base.titleFull = parsed?.full || String(base.titleFull || defaultData.titleFull || document.title || "").trim();
+        // 예전 HTML <title>(예: 5/17 전남 곡성...)은 기본값으로 사용하지 않는다.
+        // bus-route 제목은 bus-seat의 busInfo/titleMain 또는 shared/mainTitle에서만 가져온다.
+        base.titleFull = String(base.titleFull || "").trim();
         return base;
       } catch (e) {
         const fallback = safeClone(defaultData);
-        const parsed = parseDocumentTitleParts();
-        fallback.titleFull = parsed?.full || String(fallback.titleFull || document.title || "").trim();
+        fallback.titleFull = "";
         return fallback;
       }
     }
@@ -2386,8 +2391,10 @@ ${newCode}
       if (!remoteState || typeof remoteState !== "object") return;
       isApplyingRemoteState = true;
 
-      state.titleFull = String(remoteState.titleFull || state.titleFull || "").trim();
-      state.seatMainTitle = String(remoteState.seatMainTitle || state.seatMainTitle || "").trim();
+      // bus-route 자체 원격 titleFull은 더 이상 화면 제목으로 사용하지 않는다.
+      state.titleFull = "";
+      const remoteSeatMainTitle = String(remoteState.seatMainTitle || "").trim();
+      if (remoteSeatMainTitle) state.seatMainTitle = remoteSeatMainTitle;
       state.footerNote = String(remoteState.footerNote || "");
       state.rows = Array.isArray(remoteState.rows) ? remoteState.rows : safeClone(defaultData.rows);
       state.mapping = Array.isArray(remoteState.mapping) ? remoteState.mapping : safeClone(defaultData.mapping);
@@ -4297,7 +4304,7 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
       });
     });
 
-    syncStateTitleFromDocument();
+    // HTML <title>의 과거 제목을 상태로 복사하지 않는다.
     applyStopColumnSizeInputs();
     updateAdminUi();
     renderBoard();
