@@ -1736,8 +1736,9 @@
     }
 
     let state = loadData();
-    state.seatMainTitle = String(state.seatMainTitle || getSeatMainTitleFromLocalStorage() || "").trim();
-    // 과거 bus-route 기본 제목이 localStorage/Firebase에 남아 있어도 화면 제목으로 쓰지 않음
+    // bus-route 자체 저장값에 남아 있는 과거 제목(예: 5/17 전남 곡성...)은 무시한다.
+    // 화면 제목은 bus-seat의 busInfo/titleMain 또는 shared/mainTitle에서 수신된 값만 사용한다.
+    state.seatMainTitle = String(getSeatMainTitleFromLocalStorage() || "").trim();
     state.titleFull = "";
     let adminMode = false;
     let deleteMode = false;
@@ -2393,8 +2394,8 @@ ${newCode}
 
       // bus-route 자체 원격 titleFull은 더 이상 화면 제목으로 사용하지 않는다.
       state.titleFull = "";
-      const remoteSeatMainTitle = String(remoteState.seatMainTitle || "").trim();
-      if (remoteSeatMainTitle) state.seatMainTitle = remoteSeatMainTitle;
+      // busRouteApp/shared/board 안에 과거 seatMainTitle이 남아 있어도 다시 적용하지 않는다.
+      // 제목은 bindBusSeatInfoTitleMainRealtime()에서 busSeatApp 경로로만 갱신한다.
       state.footerNote = String(remoteState.footerNote || "");
       state.rows = Array.isArray(remoteState.rows) ? remoteState.rows : safeClone(defaultData.rows);
       state.mapping = Array.isArray(remoteState.mapping) ? remoteState.mapping : safeClone(defaultData.mapping);
@@ -3295,20 +3296,11 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
     function applyTitleEditing() {
       const titleCell = document.querySelector(".title-cell");
       if (!titleCell) return;
-      titleCell.contentEditable = adminMode;
-      titleCell.onblur = () => {
-        const text = titleCell.innerText.replace(/탑승\s*위치\s*\/\s*시간/g, "").trim();
-        state.titleFull = text || document.title || defaultData.titleFull;
-        syncDocumentTitleFromState();
-        renderBoard();
-        scheduleRemoteSave();
-      };
-      titleCell.onkeydown = (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          titleCell.blur();
-        }
-      };
+      titleCell.contentEditable = false;
+      titleCell.onblur = null;
+      // 제목은 bus-seat 메인제목 전용이므로 bus-route 관리자모드에서 편집/저장하지 않는다.
+      // 관리자모드 종료 시 예전 titleFull 값으로 되돌아가는 문제를 차단한다.
+      titleCell.onkeydown = null;
     }
 
     function updateSummary() {
@@ -3525,6 +3517,8 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
       updateAdminUi();
       renderBoard();
       renderMapping();
+      // 관리자모드 종료 직후에도 bus-seat 메인제목을 다시 고정 적용
+      applyBusSeatMainTitle(state.seatMainTitle);
       flashButton(adminAllBtn);
     });
 
