@@ -1570,6 +1570,17 @@
   appId: "1:93235039892:web:8fa8fa1d58809ef01aae81"
 };
 
+    // bus-seat 앱은 별도 Firebase 프로젝트를 사용하므로, bus-route DB와 분리해서 읽어야 실시간 연결됩니다.
+    const busSeatFirebaseConfig = {
+      apiKey: "AIzaSyBH3866EIMkhI--ms4xAZ7k7XS9sQFvgwQ",
+      authDomain: "bus-seat-eb86c.firebaseapp.com",
+      databaseURL: "https://bus-seat-eb86c-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "bus-seat-eb86c",
+      storageBucket: "bus-seat-eb86c.firebasestorage.app",
+      messagingSenderId: "132111967366",
+      appId: "1:132111967366:web:e034a00f8c8cc4aa441d07"
+    };
+
     const REMOTE_BOARD_PATH = "busRouteApp/shared/board";
     const REMOTE_ADMIN_PATH = "busRouteApp/shared/admin";
     const REMOTE_SEATS_PATH = "busSeatApp/seats";
@@ -1582,6 +1593,7 @@
     const BUS_SEAT_INFO_STORAGE_KEYS = ["bus-seat-layout-info-v4", "busSeatLayoutInfo", "busSeatMainTitle", "bus-seat-main-title"];
     const BUS_ROUTE_LAST_SEAT_TITLE_STORAGE_KEY = "bus-route-last-seat-main-title-v1";
     let firebaseDb = null;
+    let busSeatDb = null;
     let isApplyingRemoteState = false;
     let remoteSaveTimer = null;
     let importedNamesRealtimeBound = false;
@@ -1716,23 +1728,28 @@
       persistLocalOnly();
     }
 
+    function getBusSeatRealtimeDb() {
+      return busSeatDb || firebaseDb;
+    }
+
     function bindBusSeatInfoTitleMainRealtime() {
-      if (!firebaseDb) return;
+      const seatRealtimeDb = getBusSeatRealtimeDb();
+      if (!seatRealtimeDb) return;
 
       if (window.__busSeatInfoTitleMainHandler) {
-        firebaseDb.ref(REMOTE_SEAT_INFO_TITLE_MAIN_PATH).off("value", window.__busSeatInfoTitleMainHandler);
+        seatRealtimeDb.ref(REMOTE_SEAT_INFO_TITLE_MAIN_PATH).off("value", window.__busSeatInfoTitleMainHandler);
       }
       if (window.__busSeatBusInfoHandler) {
-        firebaseDb.ref(REMOTE_SEAT_BUSINFO_PATH).off("value", window.__busSeatBusInfoHandler);
+        seatRealtimeDb.ref(REMOTE_SEAT_BUSINFO_PATH).off("value", window.__busSeatBusInfoHandler);
       }
       if (window.__busSeatTitleMainHandler) {
-        firebaseDb.ref(REMOTE_SEAT_INFO_TITLE_PATH).off("value", window.__busSeatTitleMainHandler);
+        seatRealtimeDb.ref(REMOTE_SEAT_INFO_TITLE_PATH).off("value", window.__busSeatTitleMainHandler);
       }
       if (window.__busSeatSharedMainTitleHandler) {
-        firebaseDb.ref(REMOTE_SEAT_TITLE_PATH).off("value", window.__busSeatSharedMainTitleHandler);
+        seatRealtimeDb.ref(REMOTE_SEAT_TITLE_PATH).off("value", window.__busSeatSharedMainTitleHandler);
       }
       if (window.__busSeatRootTitleMainHandler) {
-        firebaseDb.ref("busSeatApp").off("value", window.__busSeatRootTitleMainHandler);
+        seatRealtimeDb.ref("busSeatApp").off("value", window.__busSeatRootTitleMainHandler);
       }
 
       // 최우선: bus-seat의 실제 입력칸 id 이름과 같은 infoTitleMain 경로를 실시간 감시
@@ -1743,7 +1760,7 @@
         window.__busSeatHasInfoTitleMainValue = true;
         applyBusSeatMainTitle(nextTitle);
       };
-      firebaseDb.ref(REMOTE_SEAT_INFO_TITLE_MAIN_PATH).on("value", window.__busSeatInfoTitleMainHandler, (error) => {
+      seatRealtimeDb.ref(REMOTE_SEAT_INFO_TITLE_MAIN_PATH).on("value", window.__busSeatInfoTitleMainHandler, (error) => {
         console.error("bus-seat busInfo/infoTitleMain 실시간 수신 오류:", error);
       });
 
@@ -1759,7 +1776,7 @@
           applyBusSeatMainTitle(titleMain);
         }
       };
-      firebaseDb.ref(REMOTE_SEAT_BUSINFO_PATH).on("value", window.__busSeatBusInfoHandler, (error) => {
+      seatRealtimeDb.ref(REMOTE_SEAT_BUSINFO_PATH).on("value", window.__busSeatBusInfoHandler, (error) => {
         console.error("bus-seat busInfo 실시간 수신 오류:", error);
       });
 
@@ -1768,7 +1785,7 @@
         if (window.__busSeatHasInfoTitleMainValue) return;
         applyBusSeatMainTitle(snapshot.val());
       };
-      firebaseDb.ref(REMOTE_SEAT_INFO_TITLE_PATH).on("value", window.__busSeatTitleMainHandler, (error) => {
+      seatRealtimeDb.ref(REMOTE_SEAT_INFO_TITLE_PATH).on("value", window.__busSeatTitleMainHandler, (error) => {
         console.error("bus-seat busInfo/titleMain 실시간 수신 오류:", error);
       });
 
@@ -1777,7 +1794,7 @@
         if (window.__busSeatHasInfoTitleMainValue) return;
         applyBusSeatMainTitle(snapshot.val());
       };
-      firebaseDb.ref(REMOTE_SEAT_TITLE_PATH).on("value", window.__busSeatSharedMainTitleHandler, (error) => {
+      seatRealtimeDb.ref(REMOTE_SEAT_TITLE_PATH).on("value", window.__busSeatSharedMainTitleHandler, (error) => {
         console.error("bus-seat shared/mainTitle 실시간 수신 오류:", error);
       });
 
@@ -1794,7 +1811,7 @@
         const nextTitle = extractBusSeatInfoTitleMain(root);
         applyBusSeatMainTitle(nextTitle);
       };
-      firebaseDb.ref("busSeatApp").on("value", window.__busSeatRootTitleMainHandler, (error) => {
+      seatRealtimeDb.ref("busSeatApp").on("value", window.__busSeatRootTitleMainHandler, (error) => {
         console.error("bus-seat 전체 제목 실시간 수신 오류:", error);
       });
     }
@@ -2675,6 +2692,16 @@ ${newCode}
         }
         firebaseDb = firebase.database();
 
+        try {
+          const busSeatAppName = "busSeatSource";
+          const existingBusSeatApp = firebase.apps.find((app) => app.name === busSeatAppName);
+          const busSeatApp = existingBusSeatApp || firebase.initializeApp(busSeatFirebaseConfig, busSeatAppName);
+          busSeatDb = busSeatApp.database();
+        } catch (busSeatError) {
+          console.error("bus-seat Firebase 별도 연결 초기화 오류:", busSeatError);
+          busSeatDb = null;
+        }
+
         // 앱 시작 즉시 bus-seat infoTitleMain을 실시간 구독합니다. 관리자 로그인 여부와 무관하게 타이틀이 갱신됩니다.
         bindBusSeatInfoTitleMainRealtime();
 
@@ -3218,9 +3245,10 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
     }
 
     async function bindImportedNamesRealtime() {
-      if (!firebaseDb || importedNamesRealtimeBound) return;
+      const seatRealtimeDb = getBusSeatRealtimeDb();
+      if (!seatRealtimeDb || importedNamesRealtimeBound) return;
 
-      const seatsRef = firebaseDb.ref(REMOTE_SEATS_PATH);
+      const seatsRef = seatRealtimeDb.ref(REMOTE_SEATS_PATH);
       seatsRef.off();
       importedNamesRealtimeBound = true;
 
