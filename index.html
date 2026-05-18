@@ -1560,19 +1560,23 @@
     const DEFAULT_SYSTEM_ADMIN_PASSWORD = "1234";
 
     const FIREBASE_CONFIG = {
-      apiKey: "AIzaSyBbN8CF35V00kAQzVCZoZoonXDGKTqPfZA",
-      authDomain: "bus-set-no1.firebaseapp.com",
-      databaseURL: "https://bus-set-no1-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "bus-set-no1",
-      storageBucket: "bus-set-no1.firebasestorage.app",
-      messagingSenderId: "",
-      appId: ""
+      // bus-seat-ver2와 같은 Firebase 프로젝트를 사용해야 infoTitleMain/titleMain 실시간 연동이 됩니다.
+      apiKey: "AIzaSyBH3866EIMkhI--ms4xAZ7k7XS9sQFvgwQ",
+      authDomain: "bus-seat-eb86c.firebaseapp.com",
+      databaseURL: "https://bus-seat-eb86c-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "bus-seat-eb86c",
+      storageBucket: "bus-seat-eb86c.firebasestorage.app",
+      messagingSenderId: "132111967366",
+      appId: "1:132111967366:web:e034a00f8c8cc4aa441d07"
     };
 
     const REMOTE_BOARD_PATH = "busRouteApp/shared/board";
     const REMOTE_ADMIN_PATH = "busRouteApp/shared/admin";
     const REMOTE_SEATS_PATH = "busSeatApp/seats";
+    const REMOTE_SEAT_INFO_TITLE_MAIN_PATH = "busSeatApp/busInfo/infoTitleMain";
+    // 실제 bus-seat-ver2는 화면 입력칸 id가 infoTitleMain이지만 Firebase에는 busInfo.titleMain으로 저장합니다.
     const REMOTE_SEAT_INFO_TITLE_PATH = "busSeatApp/busInfo/titleMain";
+    const REMOTE_SEAT_BUSINFO_PATH = "busSeatApp/busInfo";
     const REMOTE_SEAT_TITLE_PATH = "busSeatApp/shared/mainTitle";
     const GITHUB_BUS_SEAT_SITE_URL = "https://coretechms.github.io/trip-schedule/";
     const BUS_SEAT_INFO_STORAGE_KEYS = ["bus-seat-layout-info-v4", "busSeatLayoutInfo", "busSeatMainTitle", "bus-seat-main-title"];
@@ -1602,6 +1606,7 @@
 
       // bus-seat 쪽 제목 저장 위치가 버전별로 달라질 수 있어 최신 구조를 우선 검색
       const candidate =
+        snapshotValue?.busInfo?.infoTitleMain ||
         snapshotValue?.busInfo?.titleMain ||
         snapshotValue?.shared?.mainTitle ||
         snapshotValue?.shared?.titleFull ||
@@ -1623,7 +1628,9 @@
         const parsed = JSON.parse(text);
         if (parsed && typeof parsed === "object") {
           const candidate =
+            parsed?.busInfo?.infoTitleMain ||
             parsed?.busInfo?.titleMain ||
+            parsed.infoTitleMain ||
             parsed.mainTitle ||
             parsed.titleFull ||
             parsed.title ||
@@ -1713,7 +1720,13 @@
       if (!firebaseDb) return;
 
       if (window.__busSeatInfoTitleMainHandler) {
-        firebaseDb.ref(REMOTE_SEAT_INFO_TITLE_PATH).off("value", window.__busSeatInfoTitleMainHandler);
+        firebaseDb.ref(REMOTE_SEAT_INFO_TITLE_MAIN_PATH).off("value", window.__busSeatInfoTitleMainHandler);
+      }
+      if (window.__busSeatBusInfoHandler) {
+        firebaseDb.ref(REMOTE_SEAT_BUSINFO_PATH).off("value", window.__busSeatBusInfoHandler);
+      }
+      if (window.__busSeatTitleMainHandler) {
+        firebaseDb.ref(REMOTE_SEAT_INFO_TITLE_PATH).off("value", window.__busSeatTitleMainHandler);
       }
       if (window.__busSeatSharedMainTitleHandler) {
         firebaseDb.ref(REMOTE_SEAT_TITLE_PATH).off("value", window.__busSeatSharedMainTitleHandler);
@@ -1722,16 +1735,46 @@
         firebaseDb.ref("busSeatApp").off("value", window.__busSeatRootTitleMainHandler);
       }
 
-      // 1순위: bus-seat 관리자 메인제목 실제 저장 경로
+      // 최우선: bus-seat의 실제 입력칸 id 이름과 같은 infoTitleMain 경로를 실시간 감시
+      window.__busSeatHasInfoTitleMainValue = false;
       window.__busSeatInfoTitleMainHandler = (snapshot) => {
+        const nextTitle = normalizeSeatMainTitle(snapshot.val());
+        if (!nextTitle) return;
+        window.__busSeatHasInfoTitleMainValue = true;
+        applyBusSeatMainTitle(nextTitle);
+      };
+      firebaseDb.ref(REMOTE_SEAT_INFO_TITLE_MAIN_PATH).on("value", window.__busSeatInfoTitleMainHandler, (error) => {
+        console.error("bus-seat busInfo/infoTitleMain 실시간 수신 오류:", error);
+      });
+
+      // busInfo 전체도 감시해서 infoTitleMain 또는 titleMain 변경을 즉시 반영
+      window.__busSeatBusInfoHandler = (snapshot) => {
+        const busInfo = snapshot.val() || {};
+        const infoTitleMain = normalizeSeatMainTitle(busInfo.infoTitleMain);
+        const titleMain = normalizeSeatMainTitle(busInfo.titleMain);
+        if (infoTitleMain) {
+          window.__busSeatHasInfoTitleMainValue = true;
+          applyBusSeatMainTitle(infoTitleMain);
+        } else if (!window.__busSeatHasInfoTitleMainValue && titleMain) {
+          applyBusSeatMainTitle(titleMain);
+        }
+      };
+      firebaseDb.ref(REMOTE_SEAT_BUSINFO_PATH).on("value", window.__busSeatBusInfoHandler, (error) => {
+        console.error("bus-seat busInfo 실시간 수신 오류:", error);
+      });
+
+      // 호환용: 예전 titleMain 경로. 단, infoTitleMain 값이 있으면 덮어쓰지 않음.
+      window.__busSeatTitleMainHandler = (snapshot) => {
+        if (window.__busSeatHasInfoTitleMainValue) return;
         applyBusSeatMainTitle(snapshot.val());
       };
-      firebaseDb.ref(REMOTE_SEAT_INFO_TITLE_PATH).on("value", window.__busSeatInfoTitleMainHandler, (error) => {
+      firebaseDb.ref(REMOTE_SEAT_INFO_TITLE_PATH).on("value", window.__busSeatTitleMainHandler, (error) => {
         console.error("bus-seat busInfo/titleMain 실시간 수신 오류:", error);
       });
 
-      // 2순위: bus-seat가 bus-route 호환용으로 같이 저장하는 경로
+      // 호환용: shared/mainTitle 경로. 단, infoTitleMain 값이 있으면 덮어쓰지 않음.
       window.__busSeatSharedMainTitleHandler = (snapshot) => {
+        if (window.__busSeatHasInfoTitleMainValue) return;
         applyBusSeatMainTitle(snapshot.val());
       };
       firebaseDb.ref(REMOTE_SEAT_TITLE_PATH).on("value", window.__busSeatSharedMainTitleHandler, (error) => {
@@ -1740,7 +1783,15 @@
 
       // 예전 데이터 구조까지 대비한 보조 수신
       window.__busSeatRootTitleMainHandler = (snapshot) => {
-        const nextTitle = extractBusSeatInfoTitleMain(snapshot.val());
+        const root = snapshot.val() || {};
+        const infoTitleMain = normalizeSeatMainTitle(root?.busInfo?.infoTitleMain);
+        if (infoTitleMain) {
+          window.__busSeatHasInfoTitleMainValue = true;
+          applyBusSeatMainTitle(infoTitleMain);
+          return;
+        }
+        if (window.__busSeatHasInfoTitleMainValue) return;
+        const nextTitle = extractBusSeatInfoTitleMain(root);
         applyBusSeatMainTitle(nextTitle);
       };
       firebaseDb.ref("busSeatApp").on("value", window.__busSeatRootTitleMainHandler, (error) => {
@@ -2623,6 +2674,9 @@ ${newCode}
           firebase.initializeApp(FIREBASE_CONFIG);
         }
         firebaseDb = firebase.database();
+
+        // 앱 시작 즉시 bus-seat infoTitleMain을 실시간 구독합니다. 관리자 로그인 여부와 무관하게 타이틀이 갱신됩니다.
+        bindBusSeatInfoTitleMainRealtime();
 
         const ref = firebaseDb.ref(REMOTE_BOARD_PATH);
         const firstSnapshot = await ref.get();
