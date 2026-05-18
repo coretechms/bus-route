@@ -1550,6 +1550,7 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <script>
+    console.log("bus-route realtime fix loaded");
     const STORAGE_KEY = "bus-route-layout-v1";
     const MAPPING_STORAGE_KEY = "bus-route-mapping-v1";
     const IMPORTED_NAMES_STORAGE_KEY = "bus-route-imported-names-v1";
@@ -2681,14 +2682,14 @@ ${newCode}
           return false;
         }
 
-        const hasConfig = FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId && FIREBASE_CONFIG.databaseURL;
+        const hasConfig = firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.databaseURL;
         if (!hasConfig) {
           console.warn("Firebase 설정값이 부족합니다.");
           return false;
         }
 
         if (!firebase.apps.length) {
-          firebase.initializeApp(FIREBASE_CONFIG);
+          firebase.initializeApp(firebaseConfig);
         }
         firebaseDb = firebase.database();
 
@@ -2696,7 +2697,7 @@ ${newCode}
           const busSeatAppName = "busSeatSource";
           const existingBusSeatApp = firebase.apps.find((app) => app.name === busSeatAppName);
           const busSeatApp = existingBusSeatApp || firebase.initializeApp(busSeatFirebaseConfig, busSeatAppName);
-          busSeatDb = busSeatApp.database();
+          busSeatDb = firebase.database(busSeatApp);
         } catch (busSeatError) {
           console.error("bus-seat Firebase 별도 연결 초기화 오류:", busSeatError);
           busSeatDb = null;
@@ -4448,7 +4449,7 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
   const HOLD_MS = 600;
   const MOVE_LIMIT = 12;
 
-  const MEMBER_FIREBASE_CONFIG = {
+  const MEMBER_firebaseConfig = {
     apiKey: "AIzaSyBRxAdYRyjMIcQvCQ2ja7YOkdFGNCkW1cE",
     authDomain: "member-b458f.firebaseapp.com",
     databaseURL: "https://member-b458f-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -4668,7 +4669,7 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
       if(window.firebase.apps && window.firebase.apps.length){
         app = window.firebase.apps.find(function(item){ return item && item.name === "routeNameMemberLookup"; });
       }
-      if(!app) app = window.firebase.initializeApp(MEMBER_FIREBASE_CONFIG, "routeNameMemberLookup");
+      if(!app) app = window.firebase.initializeApp(MEMBER_firebaseConfig, "routeNameMemberLookup");
       window.firebase.database(app).ref(MEMBER_FIREBASE_PATH).once("value").then(function(snapshot){
         const rows = extractRowsFromMemberData(snapshot.val());
         if(rows.length > 1) memberRowsCache = rows;
