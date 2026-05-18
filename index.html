@@ -1339,6 +1339,33 @@
         justify-content: center !important;
       }
     }
+
+
+    /* ===== 특정 안내 행 배경색: 6/21 예정 / 최초탑승지 ===== */
+    .route-board tr.sky-highlight-row td,
+    .route-board tr.sky-highlight-row th,
+    .route-board tr.sky-highlight-row textarea,
+    .route-board tr.sky-highlight-row input,
+    .route-board tr.sky-highlight-row .inline-editor,
+    .route-board tr.sky-highlight-row .edit-field {
+      background: #dff4ff !important;
+      background-color: #dff4ff !important;
+    }
+
+
+
+    /* ===== 강제 적용: 6/21 예정 / 최초탑승지 행 파스텔 하늘색 ===== */
+    #routeBoard tr.route-sky-row,
+    #routeBoard tr.route-sky-row > td,
+    #routeBoard tr.route-sky-row > th,
+    #routeBoard tr.route-sky-row textarea,
+    #routeBoard tr.route-sky-row input,
+    #routeBoard tr.route-sky-row .inline-editor,
+    #routeBoard tr.route-sky-row .edit-field {
+      background: #dff4ff !important;
+      background-color: #dff4ff !important;
+    }
+
 </style>
 </head>
 <body>
@@ -1545,7 +1572,17 @@
     </div>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js">
+    setTimeout(initSkyHighlightRowsObserver, 0);
+    setInterval(applySkyHighlightRows, 800);
+  
+    window.addEventListener("DOMContentLoaded", startPastelSkyRowFix);
+    window.addEventListener("load", startPastelSkyRowFix);
+    setTimeout(startPastelSkyRowFix, 0);
+    setTimeout(forcePastelSkyRows, 300);
+    setTimeout(forcePastelSkyRows, 1000);
+
+  </script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
@@ -1609,7 +1646,45 @@
       seatMainTitle: ""
     };
 
-    function normalizeSeatMainTitle(value) {
+    
+    function forcePastelSkyRows() {
+      const rows = document.querySelectorAll("#routeBoard tr");
+      rows.forEach((tr) => {
+        const formValues = Array.from(tr.querySelectorAll("textarea,input,select"))
+          .map((el) => el.value || el.textContent || "")
+          .join(" ");
+        const rowText = `${tr.textContent || ""} ${formValues}`;
+        const matched = rowText.includes("6/21 예정") || rowText.includes("최초탑승지");
+        tr.classList.toggle("route-sky-row", matched);
+        if (matched) {
+          tr.querySelectorAll("td,th,textarea,input,.inline-editor,.edit-field").forEach((el) => {
+            el.style.setProperty("background", "#dff4ff", "important");
+            el.style.setProperty("background-color", "#dff4ff", "important");
+          });
+        }
+      });
+    }
+
+    function startPastelSkyRowFix() {
+      forcePastelSkyRows();
+      const board = document.getElementById("routeBoard");
+      if (!board || board.__pastelSkyFixStarted) return;
+      board.__pastelSkyFixStarted = true;
+
+      const run = () => requestAnimationFrame(forcePastelSkyRows);
+      new MutationObserver(run).observe(board, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ["value", "class", "style"]
+      });
+      board.addEventListener("input", run, true);
+      board.addEventListener("change", run, true);
+      setInterval(forcePastelSkyRows, 500);
+    }
+
+function normalizeSeatMainTitle(value) {
       return String(value || "").replace(/\s+/g, " ").trim();
     }
 
@@ -2834,6 +2909,50 @@ ${newCode}
 
       return grouped;
     }
+    function isSkyHighlightRowData(row) {
+      const combinedText = [
+        row?.region,
+        row?.stop,
+        row?.move,
+        row?.ride,
+        row?.names,
+        row?.count,
+        row?.note,
+        row?.title,
+        row?.text
+      ].map((value) => String(value || "")).join(" ");
+
+      return combinedText.includes("6/21 예정") || combinedText.includes("최초탑승지");
+    }
+
+
+    function applySkyHighlightRows() {
+      const rows = document.querySelectorAll("#routeTbody tr, #routeBoard tbody tr, #routeBoard tfoot tr");
+      rows.forEach((tr) => {
+        const valueText = Array.from(tr.querySelectorAll("textarea,input"))
+          .map((el) => el.value || "")
+          .join(" ");
+        const combinedText = `${tr.textContent || ""} ${valueText}`;
+        if (combinedText.includes("6/21 예정") || combinedText.includes("최초탑승지")) {
+          tr.classList.add("sky-highlight-row");
+        } else {
+          tr.classList.remove("sky-highlight-row");
+        }
+      });
+    }
+
+    function initSkyHighlightRowsObserver() {
+      applySkyHighlightRows();
+      const board = document.getElementById("routeBoard");
+      if (!board || board.__skyHighlightObserverReady) return;
+      board.__skyHighlightObserverReady = true;
+
+      const observer = new MutationObserver(() => applySkyHighlightRows());
+      observer.observe(board, { childList: true, subtree: true, characterData: true });
+
+      board.addEventListener("input", () => applySkyHighlightRows(), true);
+      board.addEventListener("change", () => applySkyHighlightRows(), true);
+    }
 
     function renderBoard() {
       routeTbody.innerHTML = "";
@@ -2857,6 +2976,7 @@ ${newCode}
         const index = row.sourceIndex;
         const is29th = renderIndex === 28; // 화면 기준 29번째
         const tr = document.createElement("tr");
+        if (typeof row !== "undefined" && isSkyHighlightRowData(row)) tr.classList.add("sky-highlight-row");
         const isGrayRow = isGrayStopRow(renderIndex);
         const isEmptyNames = !normalizeNames(row.names).trim();
         if (isEmptyNames) tr.classList.add("names-empty-row");
@@ -3015,6 +3135,7 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
                 
 
         routeTbody.appendChild(tr);
+        forcePastelSkyRows();
       });
 
       renderBoardHeading();
