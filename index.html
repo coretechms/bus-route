@@ -1404,6 +1404,17 @@
       background-color: #dff4ff !important;
     }
 
+
+    /* 편집/시스템관리자 그룹 상호 배타 표시 */
+    body.admin-visible.edit-group-open #adminGroupToggleBtn {
+      display: none !important;
+    }
+
+    body.admin-visible.admin-group-open #editGroupToggleBtn {
+      display: none !important;
+    }
+
+
 </style>
 </head>
 <body>
@@ -3865,7 +3876,10 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
 
     if (adminGroupToggleBtn) {
       adminGroupToggleBtn.addEventListener("click", () => {
-        if (!document.body.classList.contains("admin-visible")) {
+        
+      document.body.classList.remove("edit-group-open");
+      if (editGroupToggleBtn) editGroupToggleBtn.classList.remove("active");
+if (!document.body.classList.contains("admin-visible")) {
           alert("먼저 관리자모드로 로그인하세요.");
           return;
         }
@@ -3887,7 +3901,10 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
 
     if (editGroupToggleBtn) {
       editGroupToggleBtn.addEventListener("click", () => {
-        if (!document.body.classList.contains("admin-visible")) {
+        
+      document.body.classList.remove("admin-group-open");
+      if (adminGroupToggleBtn) adminGroupToggleBtn.classList.remove("active");
+if (!document.body.classList.contains("admin-visible")) {
           alert("먼저 관리자모드로 로그인하세요.");
           return;
         }
