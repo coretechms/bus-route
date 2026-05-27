@@ -401,6 +401,37 @@
       resize: none !important;
     }
 
+
+    /* 편집활성화 중에만 이동시간과 승차시간 사이에 기본이동 열 표시 */
+    .route-board .base-move-col {
+      display: none;
+    }
+
+    body.edit-on .route-board .base-move-col {
+      display: table-cell;
+    }
+
+    body.edit-on .route-board th.base-move-col,
+    body.edit-on .route-board td.base-move-col {
+      min-width: var(--col-move-min);
+      max-width: var(--col-move-max);
+      width: clamp(var(--col-move-min), var(--col-move-fluid), var(--col-move-max));
+      text-align: center;
+      white-space: nowrap;
+      overflow: visible;
+      background: #fff9cc !important;
+    }
+
+    body.edit-on .route-board col:nth-child(1) { width: clamp(var(--col-region-min), var(--col-region-fluid), var(--col-region-max)); }
+    body.edit-on .route-board col:nth-child(2) { width: clamp(var(--col-stop-min), var(--col-stop-fluid), var(--col-stop-max)); }
+    body.edit-on .route-board col:nth-child(3) { width: clamp(var(--col-move-min), var(--col-move-fluid), var(--col-move-max)); }
+    body.edit-on .route-board col:nth-child(4) { width: clamp(var(--col-move-min), var(--col-move-fluid), var(--col-move-max)); }
+    body.edit-on .route-board col:nth-child(5) { width: clamp(var(--col-ride-min), var(--col-ride-fluid), var(--col-ride-max)); }
+    body.edit-on .route-board col:nth-child(6) { width: var(--col-names-max); }
+    body.edit-on .route-board col:nth-child(7) { width: clamp(var(--col-count-min), var(--col-count-fluid), var(--col-count-max)); }
+    body.edit-on .route-board col:nth-child(8) { width: 27px; }
+
+
     .route-board col:nth-child(1) { width: clamp(var(--col-region-min), var(--col-region-fluid), var(--col-region-max)); }
     .route-board col:nth-child(2) { width: clamp(var(--col-stop-min), var(--col-stop-fluid), var(--col-stop-max)); }
     .route-board col:nth-child(3) { width: clamp(var(--col-move-min), var(--col-move-fluid), var(--col-move-max)); }
@@ -576,6 +607,13 @@
       outline: 1px dashed #0b6bff;
       outline-offset: -2px;
       background: var(--admin-on);
+    }
+
+
+    /* 관리자모드 진입 시 이동시간 열은 편집 가능하지만 파란 점선은 표시하지 않음 */
+    body.admin-visible:not(.edit-on) .route-board .time-small[contenteditable="true"] {
+      outline: none !important;
+      background: transparent !important;
     }
 
     .inline-editor {
@@ -1411,8 +1449,8 @@
           <button id="adminAllBtn" class="btn btn-exit">관리자</button>
           <button id="preLoginCaptureMainBtn" class="btn btn-capture" type="button">캡쳐</button>
           <button id="preLoginScheduleMainBtn" class="btn btn-capture" type="button">시간표</button>
-          <button id="adminGroupToggleBtn" class="btn group-toggle-only" type="button">시스템관리자</button>
           <button id="editGroupToggleBtn" class="btn group-toggle-only" type="button">편집</button>
+          <button id="adminGroupToggleBtn" class="btn group-toggle-only" type="button">시스템관리자</button>
 
           <span id="adminButtonGroup" class="button-subgroup admin-button-group">
             <button id="resetBtn" class="btn">초기화</button>
@@ -2900,7 +2938,7 @@ ${newCode}
             ...rows[i + offset],
             regionSpan: offset === 0 ? span : 0,
             showRegion: offset === 0,
-            sourceIndex: i + offset
+            sourceIndex: typeof rows[i + offset].__sourceIndex === "number" ? rows[i + offset].__sourceIndex : i + offset
           });
         }
 
@@ -2954,9 +2992,109 @@ ${newCode}
       board.addEventListener("change", () => applySkyHighlightRows(), true);
     }
 
+
+    function ensureBaseMoveFields() {
+      if (!state || !Array.isArray(state.rows)) return;
+      state.rows.forEach((row) => {
+        if (!row) return;
+        if (!normalizeNames(row.names).trim()) return;
+        if (typeof row.baseMove === "undefined" || row.baseMove === null || String(row.baseMove).trim() === "") {
+          row.baseMove = row.move || "0:00";
+        }
+      });
+    }
+
+    function updateBaseMoveColumnLayout() {
+      const table = document.getElementById("routeBoard");
+      if (!table) return;
+
+      const titleCell = table.querySelector(".title-cell");
+      if (titleCell) titleCell.colSpan = adminMode ? 8 : 7;
+
+      const colgroup = table.querySelector("colgroup");
+      if (colgroup) {
+        colgroup.innerHTML = adminMode
+          ? "<col><col><col><col><col><col><col><col>"
+          : "<col><col><col><col><col><col><col>";
+      }
+
+      const headRow = table.querySelector("thead tr:nth-child(2)");
+      if (headRow && !headRow.querySelector(".base-move-head")) {
+        const baseHead = document.createElement("th");
+        baseHead.className = "subhead base-move-col base-move-head";
+        baseHead.innerHTML = "기본<br>이동";
+        const rideHead = headRow.children[3];
+        headRow.insertBefore(baseHead, rideHead || null);
+      }
+
+      const baseHead = table.querySelector(".base-move-head");
+      if (baseHead) baseHead.style.display = adminMode ? "" : "none";
+
+      const footerFirstCell = table.querySelector("tfoot tr td:first-child");
+      if (footerFirstCell) footerFirstCell.colSpan = adminMode ? 5 : 4;
+    }
+
+    function getVisibleRouteRowIndexes() {
+      if (!state || !Array.isArray(state.rows)) return [];
+      return state.rows
+        .map((row, index) => ({ row, index }))
+        .filter((item) => normalizeNames(item.row && item.row.names).trim())
+        .map((item) => item.index);
+    }
+
+    function recalculateRideTimesForVisibleRowsOnly() {
+      const visibleIndexes = getVisibleRouteRowIndexes();
+      if (!visibleIndexes.length) return false;
+
+      const anchorIndex = visibleIndexes[visibleIndexes.length - 1];
+      let currentMinutes = parseTimeToMinutes(state.rows[anchorIndex] && state.rows[anchorIndex].ride);
+      if (currentMinutes === null) return false;
+
+      for (let i = visibleIndexes.length - 2; i >= 0; i--) {
+        const currentIndex = visibleIndexes[i];
+        const belowVisibleIndex = visibleIndexes[i + 1];
+        const belowMoveMinutes = parseDurationToMinutes(state.rows[belowVisibleIndex] && state.rows[belowVisibleIndex].move);
+        currentMinutes -= belowMoveMinutes;
+        state.rows[currentIndex].ride = formatMinutesToTime(currentMinutes);
+      }
+
+      return true;
+    }
+
+    function commitBaseMoveToVisibleMoveTimes() {
+      ensureBaseMoveFields();
+      if (!state || !Array.isArray(state.rows)) return false;
+
+      state.rows.forEach((row) => {
+        if (!row) return;
+
+        // 탑승자 명단이 없는 행은 이동시간/승차시간 계산과 저장 반영에서 제외
+        if (!normalizeNames(row.names).trim()) return;
+
+        const savedBaseMove = String(row.baseMove || "").trim();
+        if (savedBaseMove) row.move = savedBaseMove;
+      });
+
+      return recalculateRideTimesForVisibleRowsOnly();
+    }
+
+
     function renderBoard() {
+      ensureBaseMoveFields();
+      updateBaseMoveColumnLayout();
       routeTbody.innerHTML = "";
-      const groupedRows = groupRows(state.rows);
+
+      // 보기 화면에서는 탑승자 명단이 비어 있는 행을 아예 표시하지 않는다.
+      // 관리자/편집 모드에서는 기존처럼 보여야 행 추가·수정·삭제가 가능하다.
+      // 관리자모드 일반 상태: 탑승자 명단 있는 행만 표시
+      // 편집 활성화 상태: 전체 행 표시
+      const boardRows = adminMode
+        ? state.rows.map((row, sourceIndex) => ({ ...row, __sourceIndex: sourceIndex }))
+        : state.rows
+            .map((row, sourceIndex) => ({ ...row, __sourceIndex: sourceIndex }))
+            .filter((row) => normalizeNames(row.names).trim());
+
+      const groupedRows = groupRows(boardRows);
       const grayRowColor = "#ededed";
       const isGrayStopRow = (rowOrder) => ((rowOrder + 1) % 2 === 0);
       const applyGrayRowCell = (cell) => {
@@ -3017,7 +3155,9 @@ ${newCode}
 stopTd.style.color = isEmptyNames ? "#ddd" : "";
         tr.appendChild(stopTd);
 
-        const moveTd = makeEditableCell(row.move, "time-small", adminMode, (value) => {
+        // 관리자모드 진입 시에는 편집 활성화 버튼을 누르지 않아도 이동시간 열만 기본 편집 가능
+        const canEditMoveTime = adminMode || document.body.classList.contains("admin-visible");
+        const moveTd = makeEditableCell(row.move, "time-small", canEditMoveTime, (value) => {
           state.rows[index].move = value;
 
           const lastIndex = state.rows.length - 1;
@@ -3045,6 +3185,16 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
         if (isGrayRow) applyGrayRowCell(moveTd);
         moveTd.style.color = isEmptyNames ? "#000" : "";
         tr.appendChild(moveTd);
+
+        if (adminMode) {
+          const baseMoveTd = makeEditableCell(row.baseMove || row.move || "0:00", "time-small base-move-col", true, (value) => {
+            state.rows[index].baseMove = value || "0:00";
+            scheduleRemoteSave();
+          });
+          if (isGrayRow) applyGrayRowCell(baseMoveTd);
+          baseMoveTd.title = "편집 종료 시 이 값이 이동시간으로 저장됩니다.";
+          tr.appendChild(baseMoveTd);
+        }
 
         const rideTd = makeEditableCell(row.ride, "time-big", adminMode, (value) => {
           state.rows[index].ride = value;
@@ -3687,6 +3837,7 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
         region: regionValue,
         stop: insertStopInput.value.trim() || "새 정류장",
         move: insertMoveInput.value.trim() || "0:00",
+        baseMove: insertMoveInput.value.trim() || "0:00",
         ride: autoRide || insertRideInput.value.trim() || "0:00",
         names: "",
         count: 0,
@@ -3778,11 +3929,18 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
         return;
       }
 
+      const wasEditing = adminMode;
+      if (wasEditing) {
+        commitBaseMoveToVisibleMoveTimes();
+      }
+
       adminMode = !adminMode;
       if (!adminMode) {
         deleteMode = false;
         deleteModeBtn.classList.remove("active", "btn-delete");
         deleteModeBtn.textContent = "행 삭제";
+        recalculateRideTimesForVisibleRowsOnly();
+        scheduleRemoteSave();
       }
       updateAdminUi();
       renderBoard();
