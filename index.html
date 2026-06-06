@@ -1005,10 +1005,6 @@
     body.admin-visible .admin-only-block {
       display: block;
     }
-    }
-    }
-
-
   
     /* admin mode specified buttons: height 2x on both mobile and PC */
     body.admin-visible #addRowBtn,
@@ -1423,6 +1419,7 @@ body.admin-visible .route-board .last-ride-time-unlocked[contenteditable="true"]
   outline-offset: -2px !important;
 }
 
+
 </style>
 </head>
 <body>
@@ -1455,7 +1452,7 @@ body.admin-visible .route-board .last-ride-time-unlocked[contenteditable="true"]
               <textarea id="footerNoteInput" class="inline-editor" rows="2"></textarea>
             </td>
             <td class="total-title">참석인원</td>
-            <td class="total-count"><span id="totalCount">0</span> 명</div>
+            <td class="total-count"><span id="totalCount">0</span> 명</td>
             <td></td>
           </tr>
         </tfoot>
@@ -1629,10 +1626,12 @@ body.admin-visible .route-board .last-ride-time-unlocked[contenteditable="true"]
     </div>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+
+  </script>
     setTimeout(initSkyHighlightRowsObserver, 0);
     setInterval(applySkyHighlightRows, 800);
-  
+  </script>
     window.addEventListener("DOMContentLoaded", startPastelSkyRowFix);
     window.addEventListener("load", startPastelSkyRowFix);
     setTimeout(startPastelSkyRowFix, 0);
@@ -3129,7 +3128,7 @@ ${newCode}
       };
 
       let renderIndex = 0;
-      groupedRows.forEach((rowOrder) => {
+      groupedRows.forEach((row, rowOrder) => {
         const index = row.sourceIndex;
         const is29th = renderIndex === 28; // 화면 기준 29번째
         const tr = document.createElement("tr");
