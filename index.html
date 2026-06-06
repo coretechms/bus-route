@@ -1419,6 +1419,27 @@ body.admin-visible .route-board .last-ride-time-unlocked[contenteditable="true"]
   outline-offset: -2px !important;
 }
 
+/* 인원 우측 마지막열 = 7번째 열 / 편집 활성화 전 숨김 */
+body:not(.edit-on) .route-board th:nth-child(7),
+body:not(.edit-on) .route-board td:nth-child(7) {
+  display: none !important;
+}
+
+/* 편집 활성화 후 표시 */
+body.edit-on .route-board th:nth-child(7),
+body.edit-on .route-board td:nth-child(7) {
+  display: table-cell !important;
+}
+
+/* colgroup의 7번째 열 폭도 같이 제어 */
+body:not(.edit-on) .route-board col:nth-child(7) {
+  width: 0 !important;
+}
+
+body.edit-on .route-board col:nth-child(7) {
+  width: 27px !important;
+}
+
 
 </style>
 </head>
