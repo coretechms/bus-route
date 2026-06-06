@@ -465,10 +465,13 @@
       overflow: visible; /* 🔥 넘침 허용 */
     }
     .route-board th:nth-child(4),
-    .route-board td:nth-child(4) {
-      min-width: var(--col-ride-min);
-      max-width: var(--col-ride-max);
-      width: clamp(var(--col-ride-min), var(--col-ride-fluid), var(--col-ride-max));
+.route-board td:nth-child(4) {
+  min-width: var(--col-ride-min);
+  max-width: var(--col-ride-max);
+  width: clamp(var(--col-ride-min), var(--col-ride-fluid), var(--col-ride-max));
+  white-space: nowrap;
+  overflow: visible;
+
     }
     .route-board th:nth-child(5),
     .route-board td:nth-child(5) { min-width: var(--col-names-min); max-width: var(--col-names-max); }
@@ -526,7 +529,7 @@
     .time-big {
       text-align: center;
       letter-spacing: 1px;
-      font-size: clamp(14px, 4vw, 18px) !important;
+      font-size: clamp(12px, 3vw, 16px) !important;
       font-weight: 650;
       white-space: nowrap;
     }
