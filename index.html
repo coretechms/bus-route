@@ -2714,7 +2714,7 @@ ${newCode}
       const a = document.createElement("a");
       const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
       a.href = URL.createObjectURL(blob);
-      a.download = "탑승장_지역승차지점이름_백업_" + stamp + ".json";
+      a.download = "Bus-route_백업_" + stamp + ".json";
       document.body.appendChild(a);
       a.click();
       a.remove();
