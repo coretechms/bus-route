@@ -1416,7 +1416,12 @@
     body.admin-visible.admin-group-open #editGroupToggleBtn {
       display: none !important;
     }
-
+/* 관리자모드에서 마지막 승차시간 칸 잠금해제 표시 */
+body.admin-visible .route-board .last-ride-time-unlocked[contenteditable="true"] {
+  background: var(--admin-on) !important;
+  outline: 1px dashed #0b6bff !important;
+  outline-offset: -2px !important;
+}
 
 </style>
 </head>
@@ -3124,7 +3129,7 @@ ${newCode}
       };
 
       let renderIndex = 0;
-      groupedRows.forEach((row) => {
+      groupedRows.forEach((rowOrder) => {
         const index = row.sourceIndex;
         const is29th = renderIndex === 28; // 화면 기준 29번째
         const tr = document.createElement("tr");
@@ -3210,19 +3215,30 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
           tr.appendChild(baseMoveTd);
         }
 
-        const rideTd = makeEditableCell(row.ride, "time-big", adminMode, (value) => {
-          state.rows[index].ride = value;
-          const lastIndex = state.rows.length - 1;
 
-          if (index === lastIndex) {
-            recalculateRideTimesFromBottom(lastIndex);
-          } else if (isBaseCalcRow(index)) {
-            recalculateRideTimesFromBottom(index);
-          }
+        const isLastVisibleRideRow = rowOrder === groupedRows.length - 1;
+        const canEditRideTime =
+        adminMode ||
+        (document.body.classList.contains("admin-visible") && isLastVisibleRideRow);
 
-          renderBoard();
-          scheduleRemoteSave();
-        });
+        const rideTd = makeEditableCell(row.ride, "time-big", canEditRideTime, (value) => {
+        state.rows[index].ride = value;
+        const lastIndex = state.rows.length - 1;
+
+        if (index === lastIndex || isLastVisibleRideRow) {
+        recalculateRideTimesFromBottom(index);
+        } else if (isBaseCalcRow(index)) {
+        recalculateRideTimesFromBottom(index);
+  }
+
+  renderBoard();
+  scheduleRemoteSave();
+});
+
+if (isLastVisibleRideRow) {
+  rideTd.classList.add("last-ride-time-unlocked");
+}
+
         if (isGrayRow) applyGrayRowCell(rideTd);
         rideTd.style.color = isEmptyNames ? "#ddd" : "";
         tr.appendChild(rideTd);
