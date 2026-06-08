@@ -3233,11 +3233,7 @@ stopTd.style.color = isEmptyNames ? "#ddd" : "";
         state.rows[index].ride = value;
         const lastIndex = state.rows.length - 1;
 
-        if (index === lastIndex || isLastVisibleRideRow) {
-        recalculateRideTimesFromBottom(index);
-        } else if (isBaseCalcRow(index)) {
-        recalculateRideTimesFromBottom(index);
-  }
+        recalculateRideTimesFromBottom();
 
   renderBoard();
   scheduleRemoteSave();
@@ -3713,17 +3709,24 @@ if (isLastVisibleRideRow) {
       return region.includes("계산동") || stop.includes("계산동") || index === state.rows.length - 1;
     }
 
-    function recalculateRideTimesFromBottom(baseIndex) {
-      const anchorIndex = Number.isInteger(baseIndex) ? baseIndex : state.rows.length - 1;
+    function recalculateRideTimesFromBottom() {
+      if (!state || !Array.isArray(state.rows) || !state.rows.length) return false;
+
+      // 승차시간 계산 기준은 항상 현재 남아 있는 행 중 제일 아래 행의 승차시간이다.
+      // 행 삭제 후에는 splice로 삭제된 행이 state.rows에서 빠진 상태이므로, 남은 행만 대상으로 계산된다.
+      const anchorIndex = state.rows.length - 1;
       const baseMinutes = parseTimeToMinutes(state.rows[anchorIndex] && state.rows[anchorIndex].ride);
-      if (baseMinutes === null) return;
+      if (baseMinutes === null) return false;
 
       let currentMinutes = baseMinutes;
       for (let i = anchorIndex - 1; i >= 0; i--) {
+        // 바로 아래 행의 승차시간에서 바로 아래 행 옆의 이동시간을 빼서 현재 행 승차시간을 만든다.
         const belowMoveMinutes = parseDurationToMinutes(state.rows[i + 1] && state.rows[i + 1].move);
         currentMinutes -= belowMoveMinutes;
         state.rows[i].ride = formatMinutesToTime(currentMinutes);
       }
+
+      return true;
     }
 
     function applyTitleEditing() {
@@ -3781,6 +3784,7 @@ if (isLastVisibleRideRow) {
       const rowIndex = Number(index);
       if (!Number.isInteger(rowIndex) || rowIndex < 0 || rowIndex >= state.rows.length) return;
       state.rows.splice(rowIndex, 1);
+      recalculateRideTimesFromBottom();
       renderBoard();
       renderMapping();
       closeDeleteConfirm();
@@ -3883,17 +3887,7 @@ if (isLastVisibleRideRow) {
       };
       state.rows.splice(insertIndex, 0, newRow);
       normalizeRegionBlockAfterInsert(insertIndex, regionValue);
-
-      const recalculated = deriveInsertedRideTime(insertIndex);
-      if (recalculated) state.rows[insertIndex].ride = recalculated;
-
-      if (insertIndex > 0) {
-        const insertedRide = parseTimeToMinutes(state.rows[insertIndex].ride);
-        const insertedMove = parseDurationToMinutes(state.rows[insertIndex].move);
-        if (insertedRide !== null) {
-          state.rows[insertIndex - 1].ride = formatMinutesToTime(insertedRide - insertedMove);
-        }
-      }
+      recalculateRideTimesFromBottom();
       renderBoard();
       renderMapping();
       closeInsertDialog();
