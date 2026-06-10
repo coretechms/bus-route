@@ -1441,6 +1441,63 @@ body.edit-on .route-board col:nth-child(7) {
 }
 
 
+
+
+/* 메인화면: 이동시간 열은 보이지 않게 하되, 승차시간/탑승자명단/인원 열 넓이는 기존대로 유지 */
+body:not(.edit-on) #routeBoard th:nth-child(3),
+body:not(.edit-on) #routeBoard td:nth-child(3) {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: none !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  caret-color: transparent !important;
+  overflow: hidden !important;
+}
+
+body:not(.edit-on) #routeBoard th:nth-child(3) *,
+body:not(.edit-on) #routeBoard td:nth-child(3) * {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: none !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  caret-color: transparent !important;
+}
+
+/* 편집활성화 시 이동시간 열 정상 표시 */
+body.edit-on #routeBoard th:nth-child(3),
+body.edit-on #routeBoard td:nth-child(3),
+body.edit-on #routeBoard th:nth-child(3) *,
+body.edit-on #routeBoard td:nth-child(3) * {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  pointer-events: auto !important;
+  user-select: auto !important;
+  caret-color: auto !important;
+}
+
+
+/* 메인화면: 승차지점과 이동시간 사이 세로실선 숨김 */
+body:not(.edit-on) #routeBoard th:nth-child(2),
+body:not(.edit-on) #routeBoard td:nth-child(2) {
+  border-right-color: transparent !important;
+}
+
+body:not(.edit-on) #routeBoard th:nth-child(3),
+body:not(.edit-on) #routeBoard td:nth-child(3) {
+  border-left-color: transparent !important;
+}
+
+/* 편집활성화 시 세로실선 정상 표시 */
+body.edit-on #routeBoard th:nth-child(2),
+body.edit-on #routeBoard td:nth-child(2),
+body.edit-on #routeBoard th:nth-child(3),
+body.edit-on #routeBoard td:nth-child(3) {
+  border-left-color: var(--line) !important;
+  border-right-color: var(--line) !important;
+}
+
 </style>
 </head>
 <body>
@@ -3070,22 +3127,9 @@ ${newCode}
     }
 
     function recalculateRideTimesForVisibleRowsOnly() {
-      const visibleIndexes = getVisibleRouteRowIndexes();
-      if (!visibleIndexes.length) return false;
-
-      const anchorIndex = visibleIndexes[visibleIndexes.length - 1];
-      let currentMinutes = parseTimeToMinutes(state.rows[anchorIndex] && state.rows[anchorIndex].ride);
-      if (currentMinutes === null) return false;
-
-      for (let i = visibleIndexes.length - 2; i >= 0; i--) {
-        const currentIndex = visibleIndexes[i];
-        const belowVisibleIndex = visibleIndexes[i + 1];
-        const belowMoveMinutes = parseDurationToMinutes(state.rows[belowVisibleIndex] && state.rows[belowVisibleIndex].move);
-        currentMinutes -= belowMoveMinutes;
-        state.rows[currentIndex].ride = formatMinutesToTime(currentMinutes);
-      }
-
-      return true;
+      // 요청 수정: 화면에서 숨겨진 행도 승차시간 계산에 포함한다.
+      // 기준은 state.rows의 제일 아래 행 승차시간이며, 바로 아래 행의 이동시간을 빼면서 위쪽으로 계산한다.
+      return recalculateRideTimesFromBottom();
     }
 
     function commitBaseMoveToVisibleMoveTimes() {
@@ -3095,9 +3139,7 @@ ${newCode}
       state.rows.forEach((row) => {
         if (!row) return;
 
-        // 탑승자 명단이 없는 행은 이동시간/승차시간 계산과 저장 반영에서 제외
-        if (!normalizeNames(row.names).trim()) return;
-
+        // 요청 수정: 숨겨진 행도 계산에 포함해야 하므로 탑승자 명단 유무와 관계없이 기본이동값을 반영한다.
         const savedBaseMove = String(row.baseMove || "").trim();
         if (savedBaseMove) row.move = savedBaseMove;
       });
