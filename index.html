@@ -1498,6 +1498,24 @@ body.edit-on #routeBoard td:nth-child(3) {
   border-right-color: var(--line) !important;
 }
 
+
+/* 참석인원 합계는 메인화면에서도 항상 표시 */
+#routeBoard tfoot .total-title,
+#routeBoard tfoot .total-count,
+#routeBoard tfoot #totalCount {
+  display: table-cell !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+#routeBoard tfoot #totalCount {
+  display: inline !important;
+  color: #083dff !important;
+  -webkit-text-fill-color: #083dff !important;
+}
+
 </style>
 </head>
 <body>
