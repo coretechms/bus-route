@@ -3510,9 +3510,18 @@ if (isLastVisibleRideRow) {
     }
 
     function resizeFooterNoteInput() {
-      if (!footerNoteInput) return;
-      footerNoteInput.style.height = "auto";
-      footerNoteInput.style.height = Math.max(38, footerNoteInput.scrollHeight) + "px";
+      const textarea = document.getElementById("footerNoteInput");
+      if (!textarea) return;
+
+      textarea.style.height = "auto";
+      const nextHeight = Math.max(textarea.scrollHeight || 0, 38);
+      textarea.style.height = `${nextHeight}px`;
+
+      const cell = textarea.closest("td");
+      if (cell) {
+        cell.style.height = "auto";
+        cell.style.minHeight = `${nextHeight}px`;
+      }
     }
 
     function resizeAllTextareas() {
@@ -4526,6 +4535,21 @@ if (!document.body.classList.contains("admin-visible")) {
       clone.style.overflow = "visible";
       clone.style.transform = "none";
 
+      // cloneNode(true)는 textarea의 현재 입력값(value 속성)을 완전히 보존하지 못할 수 있으므로
+      // 캡쳐용 복제본에 원본 textarea 값을 먼저 강제 동기화한다.
+      const sourceTextareasForClone = Array.from(target.querySelectorAll("textarea"));
+      const cloneTextareasForClone = Array.from(clone.querySelectorAll("textarea"));
+      cloneTextareasForClone.forEach((textarea, index) => {
+        const sourceTextarea = sourceTextareasForClone[index];
+        if (!sourceTextarea) return;
+        const sourceValue = String(sourceTextarea.value || "");
+        textarea.value = sourceValue;
+        textarea.textContent = sourceValue;
+        textarea.setAttribute("value", sourceValue);
+        textarea.style.minHeight = Math.max(sourceTextarea.scrollHeight || 0, sourceTextarea.offsetHeight || 0, 38) + "px";
+        textarea.style.height = Math.max(sourceTextarea.scrollHeight || 0, sourceTextarea.offsetHeight || 0, 38) + "px";
+      });
+
       stage.appendChild(clone);
       document.body.appendChild(stage);
       document.body.classList.add("capture-render");
@@ -4700,12 +4724,27 @@ if (!document.body.classList.contains("admin-visible")) {
       const wrapper = document.createElement("div");
       wrapper.style.background = "#ffffff";
       wrapper.style.display = "inline-block";
-      wrapper.style.overflow = "hidden";
+      wrapper.style.overflow = "visible";
 
       const tableClone = sourceTable.cloneNode(true);
       tableClone.style.tableLayout = "fixed";
       tableClone.style.margin = "0";
       tableClone.style.background = "#ddd";
+
+      // 시간표 캡쳐에서도 원본 textarea의 현재 입력값과 실제 높이를 복제본에 반영한다.
+      const sourceTextareasForSchedule = Array.from(sourceTable.querySelectorAll("textarea"));
+      const cloneTextareasForSchedule = Array.from(tableClone.querySelectorAll("textarea"));
+      cloneTextareasForSchedule.forEach((textarea, index) => {
+        const sourceTextarea = sourceTextareasForSchedule[index];
+        if (!sourceTextarea) return;
+        const sourceValue = String(sourceTextarea.value || "");
+        textarea.value = sourceValue;
+        textarea.textContent = sourceValue;
+        textarea.setAttribute("value", sourceValue);
+        textarea.style.minHeight = Math.max(sourceTextarea.scrollHeight || 0, sourceTextarea.offsetHeight || 0, 38) + "px";
+        textarea.style.height = Math.max(sourceTextarea.scrollHeight || 0, sourceTextarea.offsetHeight || 0, 38) + "px";
+        textarea.style.overflow = "visible";
+      });
 
       const allRows = tableClone.querySelectorAll("tr");
       allRows.forEach((row, rowIndex) => {
@@ -4769,12 +4808,84 @@ if (!document.body.classList.contains("admin-visible")) {
 
       tableClone.querySelectorAll("th, td").forEach((cell) => {
         cell.style.whiteSpace = "normal";
-        cell.style.overflow = "hidden";
+        cell.style.overflow = "visible";
         cell.style.textOverflow = "clip";
         cell.style.wordBreak = "keep-all";
         cell.style.overflowWrap = "anywhere";
         cell.style.lineHeight = "1.45";
       });
+
+      // html2canvas가 textarea 내부 스크롤 영역을 잘라 찍는 문제 방지:
+      // 캡쳐 직전 textarea를 동일한 모양의 div로 바꿔 전체 글자를 DOM 텍스트로 렌더링한다.
+      tableClone.querySelectorAll("textarea").forEach((textarea) => {
+        const computed = window.getComputedStyle(textarea);
+        const value = String(textarea.value || textarea.textContent || "");
+        const mirror = document.createElement("div");
+        mirror.className = textarea.className + " capture-textarea-mirror";
+        mirror.textContent = value;
+        mirror.style.width = "100%";
+        mirror.style.minHeight = Math.max(textarea.scrollHeight || 0, textarea.offsetHeight || 0, 38) + "px";
+        mirror.style.padding = computed.padding;
+        mirror.style.margin = computed.margin;
+        mirror.style.border = computed.border;
+        mirror.style.borderRadius = computed.borderRadius;
+        mirror.style.background = computed.backgroundColor;
+        mirror.style.color = computed.color;
+        mirror.style.font = computed.font;
+        mirror.style.fontSize = computed.fontSize;
+        mirror.style.fontFamily = computed.fontFamily;
+        mirror.style.fontWeight = computed.fontWeight;
+        mirror.style.lineHeight = computed.lineHeight;
+        mirror.style.letterSpacing = computed.letterSpacing;
+        mirror.style.textAlign = computed.textAlign;
+        mirror.style.whiteSpace = "pre-wrap";
+        mirror.style.wordBreak = "keep-all";
+        mirror.style.overflowWrap = "anywhere";
+        mirror.style.boxSizing = "border-box";
+        mirror.style.display = "block";
+        mirror.style.overflow = "visible";
+        textarea.replaceWith(mirror);
+      });
+
+      // 시간표 캡쳐의 하단 안내 텍스트는 textarea 대신 일반 div로 고정 렌더링한다.
+      // html2canvas가 textarea의 내부 스크롤 영역만 캡쳐해서 2번째 줄 이후가 빠지는 문제를 방지한다.
+      const sourceFooterNote = sourceTable.querySelector("#footerNoteInput");
+      const footerNoteValue = String((sourceFooterNote && sourceFooterNote.value) || state.footerNote || "");
+      const footerNoteCell = tableClone.querySelector(".footer-note-cell") || tableClone.querySelector("tfoot td:first-child");
+      if (footerNoteCell) {
+        footerNoteCell.colSpan = 4;
+        footerNoteCell.innerHTML = "";
+        footerNoteCell.style.padding = "8px 10px";
+        footerNoteCell.style.background = "#dff4ff";
+        footerNoteCell.style.backgroundColor = "#dff4ff";
+        footerNoteCell.style.verticalAlign = "top";
+        footerNoteCell.style.textAlign = "left";
+        footerNoteCell.style.height = "auto";
+        footerNoteCell.style.minHeight = "52px";
+        footerNoteCell.style.whiteSpace = "normal";
+        footerNoteCell.style.overflow = "visible";
+
+        const footerTextMirror = document.createElement("div");
+        footerTextMirror.className = "footer-note-schedule-capture-mirror";
+        footerTextMirror.textContent = footerNoteValue;
+        footerTextMirror.style.display = "block";
+        footerTextMirror.style.width = "100%";
+        footerTextMirror.style.minHeight = "52px";
+        footerTextMirror.style.height = "auto";
+        footerTextMirror.style.background = "#dff4ff";
+        footerTextMirror.style.color = "#000";
+        footerTextMirror.style.fontFamily = '"돋움", Dotum, "Malgun Gothic", sans-serif';
+        footerTextMirror.style.fontSize = "15px";
+        footerTextMirror.style.fontWeight = "700";
+        footerTextMirror.style.lineHeight = "1.55";
+        footerTextMirror.style.letterSpacing = "0px";
+        footerTextMirror.style.whiteSpace = "pre-wrap";
+        footerTextMirror.style.wordBreak = "keep-all";
+        footerTextMirror.style.overflowWrap = "anywhere";
+        footerTextMirror.style.overflow = "visible";
+        footerTextMirror.style.boxSizing = "border-box";
+        footerNoteCell.appendChild(footerTextMirror);
+      }
 
       tableClone.querySelectorAll(".stop-name").forEach((cell) => {
         cell.style.fontSize = "18px";
@@ -4802,6 +4913,12 @@ if (!document.body.classList.contains("admin-visible")) {
 
       try {
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        tableClone.querySelectorAll(".footer-note-schedule-capture-mirror").forEach((mirror) => {
+          mirror.style.minHeight = Math.max(mirror.scrollHeight || 0, 52) + "px";
+          const cell = mirror.closest("td");
+          if (cell) cell.style.height = Math.max(mirror.scrollHeight || 0, 52) + 18 + "px";
+        });
+        await new Promise((resolve) => requestAnimationFrame(resolve));
         const canvas = await html2canvas(wrapper, {
           backgroundColor: "#ffffff",
           scale: 2.5,
