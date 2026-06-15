@@ -1516,6 +1516,46 @@ body.edit-on #routeBoard td:nth-child(3) {
   -webkit-text-fill-color: #083dff !important;
 }
 
+
+/* ===== 하단 빨강 표시 영역: 일반 텍스트 입력 + 글자수/줄수 자동 칸늘림 ===== */
+.route-board .footer-note-cell {
+  padding: 0 !important;
+  vertical-align: top !important;
+  text-align: left !important;
+  background: #dff4ff !important;
+  height: auto !important;
+}
+
+#footerNoteInput.footer-note-input {
+  display: block !important;
+  width: 100% !important;
+  min-height: 38px !important;
+  height: auto;
+  border: 0 !important;
+  outline: none !important;
+  resize: none !important;
+  overflow: hidden !important;
+  padding: 8px 10px !important;
+  background: #dff4ff !important;
+  font: inherit !important;
+  font-size: var(--fs-body) !important;
+  line-height: 1.55 !important;
+  white-space: pre-wrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: anywhere !important;
+  box-sizing: border-box !important;
+}
+
+body.capture-render #footerNoteInput.footer-note-input,
+body.capture-render .footer-note-cell .capture-textarea-mirror {
+  height: auto !important;
+  min-height: 38px !important;
+  overflow: visible !important;
+  white-space: pre-wrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: anywhere !important;
+}
+
 </style>
 </head>
 <body>
@@ -1544,8 +1584,8 @@ body.edit-on #routeBoard td:nth-child(3) {
         <tbody id="routeTbody"></tbody>
         <tfoot>
           <tr>
-            <td colspan="4" class="total-label">
-              <textarea id="footerNoteInput" class="inline-editor" rows="2"></textarea>
+            <td colspan="4" class="total-label footer-note-cell">
+              <textarea id="footerNoteInput" class="inline-editor footer-note-input" rows="1" placeholder="텍스트 입력"></textarea>
             </td>
             <td class="total-title">참석인원</td>
             <td class="total-count"><span id="totalCount">0</span> 명</td>
@@ -3386,6 +3426,7 @@ if (isLastVisibleRideRow) {
       syncDocumentTitleFromState();
       footerNoteInput.value = state.footerNote || "";
       footerNoteInput.readOnly = false;
+      resizeFooterNoteInput();
       updateSummary();
       applyTitleEditing();
       requestAnimationFrame(resizeAllTextareas);
@@ -3466,6 +3507,12 @@ if (isLastVisibleRideRow) {
 
       td.appendChild(textarea);
       return td;
+    }
+
+    function resizeFooterNoteInput() {
+      if (!footerNoteInput) return;
+      footerNoteInput.style.height = "auto";
+      footerNoteInput.style.height = Math.max(38, footerNoteInput.scrollHeight) + "px";
     }
 
     function resizeAllTextareas() {
@@ -4346,9 +4393,12 @@ if (!document.body.classList.contains("admin-visible")) {
 
 
     footerNoteInput.addEventListener("input", () => {
+      resizeFooterNoteInput();
       state.footerNote = footerNoteInput.value;
       scheduleRemoteSave();
     });
+    footerNoteInput.addEventListener("change", resizeFooterNoteInput);
+    footerNoteInput.addEventListener("focus", resizeFooterNoteInput);
 
     importedNamesBox.addEventListener("input", () => {
       state.importedNames = importedNamesBox.value;
@@ -4585,8 +4635,8 @@ if (!document.body.classList.contains("admin-visible")) {
           const mirror = document.createElement("div");
           mirror.className = textarea.className + " capture-textarea-mirror";
           mirror.textContent = value;
-          mirror.style.width = textarea.offsetWidth + "px";
-          mirror.style.minHeight = Math.max(textarea.offsetHeight, textarea.scrollHeight) + "px";
+          mirror.style.width = (textarea.parentElement ? textarea.parentElement.clientWidth : textarea.offsetWidth) + "px";
+          mirror.style.minHeight = Math.max(textarea.offsetHeight, textarea.scrollHeight, 38) + "px";
           mirror.style.padding = computed.padding;
           mirror.style.margin = computed.margin;
           mirror.style.border = computed.border;
