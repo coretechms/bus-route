@@ -391,26 +391,14 @@
       line-height: 1.45;
     }
 
-    body.capture-render .route-board .names-cell textarea {
+    body.capture-render .route-board .names-cell textarea,
+    body.capture-render .route-board .inline-editor,
+    body.capture-render .route-board .edit-field {
       white-space: normal !important;
       overflow: visible !important;
       height: auto !important;
       min-height: 0 !important;
       resize: none !important;
-    }
-
-    body.capture-render .route-board .edit-field {
-      white-space: normal !important;
-      overflow: visible !important;
-      resize: none !important;
-    }
-
-    /* 캡쳐 중 하단 입력칸은 실제 화면 높이를 유지한다. */
-    body.capture-render #footerNoteInput.footer-note-input {
-      height: var(--footer-note-capture-height, 38px) !important;
-      min-height: var(--footer-note-capture-height, 38px) !important;
-      max-height: var(--footer-note-capture-height, 38px) !important;
-      overflow: hidden !important;
     }
 
 
@@ -640,8 +628,7 @@
       background: transparent;
       padding: 2px;
       line-height: 1.5;
-      word-spacing: normal;
-      letter-spacing: normal;
+      word-spacing: 1.1ch;
       overflow: hidden; /* 🔥 내용 넘침 방지 */
     }
 
@@ -1530,7 +1517,7 @@ body.edit-on #routeBoard td:nth-child(3) {
 }
 
 
-/* ===== 하단 텍스트 입력칸: 일반 textarea + 실제 높이 기준 캡쳐 ===== */
+/* ===== 하단 빨강 표시 영역: 일반 텍스트 입력 + 글자수/줄수 자동 칸늘림 ===== */
 .route-board .footer-note-cell {
   padding: 0 !important;
   vertical-align: top !important;
@@ -1543,39 +1530,65 @@ body.edit-on #routeBoard td:nth-child(3) {
   display: block !important;
   width: 100% !important;
   min-height: 38px !important;
-  height: 38px;
+  height: auto;
   border: 0 !important;
   outline: none !important;
   resize: none !important;
   overflow: hidden !important;
-  word-spacing: normal !important;
-  letter-spacing: normal !important;
   padding: 8px 10px !important;
   background: #dff4ff !important;
-  font-family: inherit !important;
-  font-size: 14px !important;
-  font-weight: inherit !important;
-  line-height: 1.45 !important;
-  letter-spacing: normal !important;
-  word-spacing: normal !important;
+  font: inherit !important;
+  font-size: var(--fs-body) !important;
+  line-height: 1.55 !important;
   white-space: pre-wrap !important;
   word-break: keep-all !important;
   overflow-wrap: anywhere !important;
   box-sizing: border-box !important;
 }
 
+
+
+/* ===== 하단 텍스트 입력칸 글자/스페이스 간격 정상화 ===== */
+#footerNoteInput.footer-note-input,
+.footer-note-cell .capture-textarea-mirror,
+.footer-note-cell .footer-note-schedule-capture-mirror {
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  font-kerning: normal !important;
+}
+
 body.capture-render #footerNoteInput.footer-note-input,
 body.capture-render .footer-note-cell .capture-textarea-mirror {
-  height: var(--footer-note-capture-height, 38px) !important;
-  min-height: var(--footer-note-capture-height, 38px) !important;
-  max-height: var(--footer-note-capture-height, 38px) !important;
-  overflow: hidden !important;
+  height: auto !important;
+  min-height: 38px !important;
+  overflow: visible !important;
   white-space: pre-wrap !important;
   word-break: keep-all !important;
   overflow-wrap: anywhere !important;
-  letter-spacing: normal !important;
-  word-spacing: normal !important;
+}
+
+
+/* ===== 2026-06-16 캡쳐 보정: 하단 출발지/도착지 칸 실물 높이 고정 ===== */
+body.capture-render .route-board .footer-note-cell {
+  padding: 0 !important;
+  vertical-align: top !important;
+  height: auto !important;
+  min-height: 38px !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+body.capture-render .route-board .footer-note-cell .capture-textarea-mirror {
+  display: block !important;
+  width: 100% !important;
+  min-height: 38px !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  white-space: pre-wrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: anywhere !important;
   box-sizing: border-box !important;
+  background: #dff4ff !important;
 }
 
 </style>
@@ -3448,7 +3461,6 @@ if (isLastVisibleRideRow) {
       syncDocumentTitleFromState();
       footerNoteInput.value = state.footerNote || "";
       footerNoteInput.readOnly = false;
-      requestAnimationFrame(resizeFooterNoteInput);
       resizeFooterNoteInput();
       updateSummary();
       applyTitleEditing();
@@ -3533,10 +3545,18 @@ if (isLastVisibleRideRow) {
     }
 
     function resizeFooterNoteInput() {
-      if (!footerNoteInput) return;
-      footerNoteInput.style.height = "38px";
-      const nextHeight = Math.max(38, footerNoteInput.scrollHeight);
-      footerNoteInput.style.height = nextHeight + "px";
+      const textarea = document.getElementById("footerNoteInput");
+      if (!textarea) return;
+
+      textarea.style.height = "auto";
+      const nextHeight = Math.max(textarea.scrollHeight || 0, 38);
+      textarea.style.height = `${nextHeight}px`;
+
+      const cell = textarea.closest("td");
+      if (cell) {
+        cell.style.height = "auto";
+        cell.style.minHeight = `${nextHeight}px`;
+      }
     }
 
     function resizeAllTextareas() {
@@ -4545,54 +4565,72 @@ if (!document.body.classList.contains("admin-visible")) {
       stage.style.zIndex = "-1";
 
       const clone = target.cloneNode(true);
-      const targetRect = target.getBoundingClientRect();
-      const fixedCaptureWidth = Math.ceil(targetRect.width || target.offsetWidth || 900);
-      clone.style.setProperty("width", fixedCaptureWidth + "px", "important");
-      clone.style.setProperty("max-width", fixedCaptureWidth + "px", "important");
+      clone.style.width = "auto";
+      clone.style.maxWidth = "none";
       clone.style.overflow = "visible";
       clone.style.transform = "none";
 
-      const sourceFooterNote = target.querySelector("#footerNoteInput.footer-note-input");
-      const sourceFooterCell = target.querySelector(".footer-note-cell");
-      const sourceFooterRect = sourceFooterCell
-        ? sourceFooterCell.getBoundingClientRect()
-        : (sourceFooterNote ? sourceFooterNote.getBoundingClientRect() : null);
-      const footerCaptureHeight = Math.max(38, Math.ceil((sourceFooterRect && sourceFooterRect.height) || 38));
-      clone.style.setProperty("--footer-note-capture-height", footerCaptureHeight + "px");
+      // cloneNode(true)는 textarea의 현재 입력값(value 속성)을 완전히 보존하지 못할 수 있으므로
+      // 캡쳐용 복제본에 원본 textarea 값을 먼저 강제 동기화한다.
+      const sourceTextareasForClone = Array.from(target.querySelectorAll("textarea"));
+      const cloneTextareasForClone = Array.from(clone.querySelectorAll("textarea"));
+      cloneTextareasForClone.forEach((textarea, index) => {
+        const sourceTextarea = sourceTextareasForClone[index];
+        if (!sourceTextarea) return;
+        const sourceValue = String(sourceTextarea.value || "");
+        textarea.value = sourceValue;
+        textarea.textContent = sourceValue;
+        textarea.setAttribute("value", sourceValue);
+
+        // 하단 출발지/도착지 칸은 캡쳐용 복제 DOM에서 scrollHeight가 과대 계산되어
+        // 비정상적으로 커지는 문제가 있으므로 실제 화면 높이(offsetHeight)만 사용한다.
+        if (textarea.id === "footerNoteInput") {
+          // 하단 입력칸은 화면 높이 고정이 아니라 입력 글자량에 맞게 캡쳐 복제본에서 다시 계산한다.
+          // 그래야 사용자가 줄을 늘렸을 때 하단 내용과 테두리가 잘리지 않는다.
+          textarea.style.height = "auto";
+          textarea.style.minHeight = "38px";
+          textarea.style.maxHeight = "none";
+          textarea.style.overflow = "visible";
+          textarea.style.whiteSpace = "pre-wrap";
+          const cloneCell = textarea.closest("td");
+          if (cloneCell) {
+            cloneCell.style.height = "auto";
+            cloneCell.style.minHeight = "38px";
+            cloneCell.style.maxHeight = "none";
+            cloneCell.style.overflow = "visible";
+          }
+          return;
+        }
+
+        const measuredHeight = Math.max(sourceTextarea.scrollHeight || 0, sourceTextarea.offsetHeight || 0, 38);
+        textarea.style.minHeight = measuredHeight + "px";
+        textarea.style.height = measuredHeight + "px";
+      });
 
       stage.appendChild(clone);
       document.body.appendChild(stage);
       document.body.classList.add("capture-render");
 
-      const sourceTextareas = Array.from(target.querySelectorAll("textarea"));
-      const textareas = Array.from(clone.querySelectorAll("textarea"));
-      textareas.forEach((textarea, index) => {
-        if (sourceTextareas[index]) textarea.value = sourceTextareas[index].value;
-        const isFooterNote = textarea.id === "footerNoteInput" || textarea.classList.contains("footer-note-input");
-        textarea.style.overflow = "hidden";
-        textarea.style.whiteSpace = "pre-wrap";
-        textarea.style.wordSpacing = "normal";
-        textarea.style.letterSpacing = "normal";
-
-        if (isFooterNote) {
-          const sourceEl = sourceTextareas[index];
-          const sourceValue = sourceEl ? String(sourceEl.value || "") : String(textarea.value || "");
-          textarea.value = sourceValue;
-          textarea.style.setProperty("height", footerCaptureHeight + "px", "important");
-          textarea.style.setProperty("min-height", footerCaptureHeight + "px", "important");
-          textarea.style.setProperty("max-height", footerCaptureHeight + "px", "important");
-          textarea.style.setProperty("overflow", "hidden", "important");
-          textarea.style.setProperty("white-space", "pre-wrap", "important");
-          textarea.style.setProperty("letter-spacing", "normal", "important");
-          textarea.style.setProperty("word-spacing", "normal", "important");
-          textarea.rows = Math.max(1, sourceValue.split("\n").length);
-        } else {
-          const rawValue = String(textarea.value || "");
-          const normalizedValue = rawValue.split(String.fromCharCode(13)).join("");
-          const lineCount = normalizedValue.split(String.fromCharCode(10)).length;
-          textarea.rows = Math.max(1, lineCount);
-          textarea.style.height = Math.max(textarea.scrollHeight, textarea.offsetHeight, 34) + "px";
+      const textareas = clone.querySelectorAll("textarea");
+      textareas.forEach((textarea) => {
+        if (textarea.id === "footerNoteInput") {
+          textarea.style.height = "auto";
+          textarea.style.minHeight = "38px";
+          textarea.style.maxHeight = "none";
+          textarea.style.overflow = "visible";
+          textarea.style.whiteSpace = "pre-wrap";
+          textarea.rows = 1;
+          return;
         }
+
+        textarea.style.height = "auto";
+        textarea.style.overflow = "visible";
+        textarea.style.whiteSpace = "normal";
+
+        const rawValue = String(textarea.value || "");
+        const normalizedValue = rawValue.split(String.fromCharCode(13)).join("");
+        const lineCount = normalizedValue.split(String.fromCharCode(10)).length;
+        textarea.rows = Math.max(2, lineCount);
       });
 
       const titleCell = clone.querySelector(".title-cell");
@@ -4602,15 +4640,28 @@ if (!document.body.classList.contains("admin-visible")) {
 
       const table = clone.querySelector("#routeBoard, .route-board");
       const sourceTable = target.querySelector("#routeBoard, .route-board");
-      // 캡쳐 폭은 글자 길이로 키우지 않고, 화면에 보이는 실제 표 폭 그대로 고정한다.
-      const sourceTableRect = sourceTable ? sourceTable.getBoundingClientRect() : null;
-      const actualTableWidth = Math.ceil((sourceTableRect && sourceTableRect.width) || fixedCaptureWidth);
+      // 🔥 캡쳐 시 텍스트 길이에 맞게 자동 폭 계산
+      let maxStopLen = 0;
+      let maxNamesLen = 0;
+
+      const rows = clone.querySelectorAll("tbody tr");
+      rows.forEach(tr => {
+        const tds = tr.querySelectorAll("td");
+        if (tds.length >= 5) {
+          maxStopLen = Math.max(maxStopLen, (tds[1].innerText || "").length);
+          maxNamesLen = Math.max(maxNamesLen, (tds[4].innerText || "").length);
+        }
+      });
+
+      const stopWidth = Math.min(500, Math.max(140, maxStopLen * 12));
+      const namesWidth = Math.min(600, Math.max(160, maxNamesLen * 8));
+
+      const baseDesiredWidth = stopWidth + namesWidth + 600;
+      const desiredWidth = Math.max(baseDesiredWidth, Number(options.desiredWidth) || 0);
 
       if (table) {
-        table.style.setProperty("width", actualTableWidth + "px", "important");
-        table.style.setProperty("min-width", actualTableWidth + "px", "important");
-        table.style.setProperty("max-width", actualTableWidth + "px", "important");
-        table.style.setProperty("table-layout", "fixed", "important");
+        table.style.width = `${desiredWidth}px`;
+        table.style.minWidth = `${desiredWidth}px`;
       }
 
       if (options.cropToSchedule && table) {
@@ -4663,7 +4714,6 @@ if (!document.body.classList.contains("admin-visible")) {
     }
 
     async function captureElementForDownload(target, fileName) {
-      resizeFooterNoteInput();
       const capture = createCaptureClone(target);
 
       try {
@@ -4676,24 +4726,6 @@ if (!document.body.classList.contains("admin-visible")) {
           const mirror = document.createElement("div");
           mirror.className = textarea.className + " capture-textarea-mirror";
           mirror.textContent = value;
-          const isFooterNote = textarea.id === "footerNoteInput" || textarea.classList.contains("footer-note-input");
-          const sourceTextarea = isFooterNote
-            ? document.querySelector("#boardWrap #footerNoteInput.footer-note-input")
-            : (document.getElementById(textarea.id) || null);
-          const sourceFooterCell = isFooterNote ? document.querySelector("#boardWrap .footer-note-cell") : null;
-          const sourceRect = sourceTextarea ? sourceTextarea.getBoundingClientRect() : null;
-          const sourceCellRect = sourceFooterCell ? sourceFooterCell.getBoundingClientRect() : null;
-          if (isFooterNote && sourceTextarea) mirror.textContent = String(sourceTextarea.value || "");
-          const visibleWidth = isFooterNote && sourceCellRect
-            ? Math.ceil(sourceCellRect.width)
-            : (textarea.parentElement ? textarea.parentElement.clientWidth : textarea.offsetWidth);
-          const visibleHeight = isFooterNote && sourceCellRect
-            ? Math.max(38, Math.ceil(sourceCellRect.height || 38))
-            : Math.max(textarea.offsetHeight, textarea.scrollHeight, 38);
-          mirror.style.setProperty("width", visibleWidth + "px", "important");
-          mirror.style.setProperty("min-height", visibleHeight + "px", "important");
-          mirror.style.setProperty("height", visibleHeight + "px", "important");
-          mirror.style.setProperty("max-height", visibleHeight + "px", "important");
           mirror.style.padding = computed.padding;
           mirror.style.margin = computed.margin;
           mirror.style.border = computed.border;
@@ -4705,24 +4737,66 @@ if (!document.body.classList.contains("admin-visible")) {
           mirror.style.fontFamily = computed.fontFamily;
           mirror.style.fontWeight = computed.fontWeight;
           mirror.style.lineHeight = computed.lineHeight;
-          mirror.style.letterSpacing = "normal";
-          mirror.style.wordSpacing = "normal";
+          mirror.style.letterSpacing = computed.letterSpacing;
           mirror.style.textAlign = computed.textAlign;
           mirror.style.whiteSpace = "pre-wrap";
           mirror.style.wordBreak = "keep-all";
           mirror.style.overflowWrap = "anywhere";
           mirror.style.boxSizing = "border-box";
           mirror.style.display = "block";
-          mirror.style.overflow = isFooterNote ? "hidden" : "visible";
 
-          textarea.style.display = "none";
-          textarea.parentNode.insertBefore(mirror, textarea.nextSibling);
+          if (textarea.id === "footerNoteInput") {
+            mirror.style.width = "100%";
+            mirror.style.height = "auto";
+            mirror.style.minHeight = "38px";
+            mirror.style.maxHeight = "none";
+            mirror.style.overflow = "visible";
+            const cell = textarea.closest("td");
+            if (cell) {
+              cell.style.height = "auto";
+              cell.style.minHeight = "38px";
+              cell.style.maxHeight = "none";
+              cell.style.overflow = "visible";
+            }
+          } else {
+            mirror.style.width = (textarea.parentElement ? textarea.parentElement.clientWidth : textarea.offsetWidth) + "px";
+            mirror.style.minHeight = Math.max(textarea.offsetHeight, textarea.scrollHeight, 38) + "px";
+            mirror.style.overflow = "visible";
+          }
+
+          // textarea를 숨기는 방식은 CSS의 display:block !important와 충돌해서
+          // 원본 textarea + mirror가 동시에 캡쳐되는 중복 출력 원인이 된다.
+          // 캡쳐 복제본에서는 textarea 자체를 일반 div로 완전히 교체한다.
+          textarea.replaceWith(mirror);
         });
 
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
+        // 하단 입력칸은 실제 캡쳐 복제본의 scrollHeight로 최종 높이를 확정한다.
+        // 기존 offsetHeight 고정 방식은 글자 입력으로 칸이 늘어난 상태를 놓쳐 하단이 잘렸다.
+        capture.clone.querySelectorAll(".footer-note-cell .capture-textarea-mirror").forEach((mirror) => {
+          const needHeight = Math.max(Math.ceil(mirror.scrollHeight || mirror.offsetHeight || 0), 38);
+          mirror.style.height = needHeight + "px";
+          mirror.style.minHeight = needHeight + "px";
+          mirror.style.maxHeight = "none";
+          mirror.style.overflow = "visible";
+          const cell = mirror.closest("td");
+          if (cell) {
+            cell.style.height = needHeight + "px";
+            cell.style.minHeight = needHeight + "px";
+            cell.style.maxHeight = "none";
+            cell.style.overflow = "visible";
+          }
+        });
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+
         const contentWidth = Math.max(capture.clone.scrollWidth, capture.clone.clientWidth);
         const contentHeight = Math.max(capture.clone.scrollHeight, capture.clone.clientHeight);
+
+        // html2canvas는 요소의 맨 아래 1px 테두리를 높이 계산에서 잘라내는 경우가 있어
+        // 실제 높이보다 조금 더 크게 캡쳐해서 하단 테두리까지 포함한다.
+        const captureSafeWidth = contentWidth + 4;
+        const captureSafeHeight = contentHeight + 8;
 
         const canvas = await html2canvas(capture.clone, {
           backgroundColor: "#ffffff",
@@ -4731,10 +4805,10 @@ if (!document.body.classList.contains("admin-visible")) {
           logging: false,
           scrollX: 0,
           scrollY: 0,
-          windowWidth: Math.max(document.documentElement.clientWidth, contentWidth),
-          windowHeight: Math.max(document.documentElement.clientHeight, contentHeight),
-          width: contentWidth,
-          height: contentHeight
+          windowWidth: Math.max(document.documentElement.clientWidth, captureSafeWidth),
+          windowHeight: Math.max(document.documentElement.clientHeight, captureSafeHeight),
+          width: captureSafeWidth,
+          height: captureSafeHeight
         });
 
         downloadCanvas(canvas, fileName);
@@ -4758,24 +4832,70 @@ if (!document.body.classList.contains("admin-visible")) {
       const wrapper = document.createElement("div");
       wrapper.style.background = "#ffffff";
       wrapper.style.display = "inline-block";
-      wrapper.style.overflow = "hidden";
+      wrapper.style.overflow = "visible";
 
       const tableClone = sourceTable.cloneNode(true);
       tableClone.style.tableLayout = "fixed";
       tableClone.style.margin = "0";
       tableClone.style.background = "#ddd";
 
-      const allRows = tableClone.querySelectorAll("tr");
-      allRows.forEach((row, rowIndex) => {
+      // 시간표 캡쳐 전용에서 관리자용 기본이동 열은 완전히 제외한다.
+      // 원본 헤더에는 숨김 상태의 base-move-col이 남아 있어, 그대로 두면 승차시간 열 대신
+      // 숨김 기본이동 열을 4번째 열로 잡아 승차시간 글자가 사라진다.
+      tableClone.querySelectorAll(".base-move-col").forEach((cell) => cell.remove());
+
+      // 시간표 캡쳐 전용: 지역 / 승차지점 / 이동시간(안보임) / 승차시간 4열만 남긴다.
+      // 이동시간 열은 삭제하지 않고 폭과 선을 유지하되, 글자만 투명 처리한다.
+      Array.from(tableClone.querySelectorAll("thead tr, tbody tr, tfoot tr")).forEach((row, rowIndex) => {
         const cells = Array.from(row.children);
-        cells.forEach((cell, cellIndex) => {
-          if (cellIndex >= 4) {
-            cell.remove();
-          }
-        });
-        if (rowIndex === 0) {
+
+        if (row.parentElement && row.parentElement.tagName === "THEAD" && rowIndex === 0) {
           const firstCell = row.querySelector("th, td");
           if (firstCell) firstCell.colSpan = 4;
+          cells.slice(1).forEach((cell) => cell.remove());
+          return;
+        }
+
+        if (row.parentElement && row.parentElement.tagName === "THEAD") {
+          // 헤더: 지역(0), 승차지점(1), 이동시간(2: 글자 숨김), 승차시간(3) 유지
+          cells.forEach((cell, cellIndex) => {
+            if (![0, 1, 2, 3].includes(cellIndex)) cell.remove();
+          });
+          const headerCells = Array.from(row.children);
+          if (headerCells[2]) {
+            headerCells[2].innerHTML = "이동<br>시간";
+            headerCells[2].style.color = "transparent";
+            headerCells[2].style.webkitTextFillColor = "transparent";
+            headerCells[2].style.textShadow = "none";
+          }
+          if (headerCells[3]) {
+            headerCells[3].textContent = "승차시간";
+            headerCells[3].style.display = "table-cell";
+            headerCells[3].style.visibility = "visible";
+            headerCells[3].style.color = "#111";
+            headerCells[3].style.webkitTextFillColor = "#111";
+            headerCells[3].style.textShadow = "none";
+          }
+          return;
+        }
+
+        if (row.parentElement && row.parentElement.tagName === "TFOOT") {
+          // 하단: 텍스트 입력칸만 캡쳐하고 참석인원/인원/삭제열은 완전 제거
+          const firstCell = cells[0];
+          cells.slice(1).forEach((cell) => cell.remove());
+          if (firstCell) firstCell.colSpan = 4;
+          return;
+        }
+
+        // 본문: 지역(0), 승차지점(1), 이동시간(2: 글자 숨김), 승차시간(3) 유지
+        cells.forEach((cell, cellIndex) => {
+          if (![0, 1, 2, 3].includes(cellIndex)) cell.remove();
+        });
+        const keptCells = Array.from(row.children);
+        if (keptCells[2]) {
+          keptCells[2].style.color = "transparent";
+          keptCells[2].style.webkitTextFillColor = "transparent";
+          keptCells[2].style.textShadow = "none";
         }
       });
 
@@ -4786,22 +4906,20 @@ if (!document.body.classList.contains("admin-visible")) {
 
       const rows = tableClone.querySelectorAll("tbody tr");
       let maxStop = 0;
-      let maxMove = 0;
       let maxRide = 0;
 
       rows.forEach((tr) => {
         const tds = tr.querySelectorAll("td");
         if (tds.length >= 4) {
           maxStop = Math.max(maxStop, (tds[1].innerText || "").trim().length);
-          maxMove = Math.max(maxMove, (tds[2].innerText || "").trim().length);
           maxRide = Math.max(maxRide, (tds[3].innerText || "").trim().length);
         }
       });
 
       const regionWidth = 120;
-      const stopWidth = Math.min(900, Math.max(200, maxStop * 14));
-      const moveWidth = Math.min(120, Math.max(40, maxMove * 10));
-      const rideWidth = Math.min(500, Math.max(180, maxRide * 20));
+      const stopWidth = Math.min(900, Math.max(220, maxStop * 14));
+      const moveWidth = 70;
+      const rideWidth = Math.min(260, Math.max(150, maxRide * 20));
       const totalWidth = regionWidth + stopWidth + moveWidth + rideWidth;
 
       wrapper.style.width = totalWidth + "px";
@@ -4827,12 +4945,103 @@ if (!document.body.classList.contains("admin-visible")) {
 
       tableClone.querySelectorAll("th, td").forEach((cell) => {
         cell.style.whiteSpace = "normal";
-        cell.style.overflow = "hidden";
+        cell.style.overflow = "visible";
         cell.style.textOverflow = "clip";
         cell.style.wordBreak = "keep-all";
         cell.style.overflowWrap = "anywhere";
         cell.style.lineHeight = "1.45";
+        cell.style.color = "#111";
+        cell.style.webkitTextFillColor = "#111";
+        cell.style.pointerEvents = "auto";
+        cell.style.userSelect = "auto";
       });
+
+      // 공통 스타일 적용 후에도 이동시간 열 글자는 다시 숨긴다.
+      tableClone.querySelectorAll("thead tr:nth-child(2) th:nth-child(3), tbody tr td:nth-child(3)").forEach((cell) => {
+        cell.style.color = "transparent";
+        cell.style.webkitTextFillColor = "transparent";
+        cell.style.textShadow = "none";
+      });
+
+      tableClone.querySelectorAll("thead th").forEach((cell) => {
+        cell.style.background = "#ededed";
+        cell.style.backgroundColor = "#ededed";
+        cell.style.textAlign = "center";
+        cell.style.fontWeight = "800";
+        cell.style.fontSize = "15px";
+        cell.style.color = "#111";
+        cell.style.webkitTextFillColor = "#111";
+      });
+
+      tableClone.querySelectorAll("thead tr:nth-child(2) th:nth-child(3), tbody tr td:nth-child(3)").forEach((cell) => {
+        cell.style.color = "transparent";
+        cell.style.webkitTextFillColor = "transparent";
+        cell.style.textShadow = "none";
+      });
+
+      const rideHeaderCell = tableClone.querySelector("thead tr:nth-child(2) th:nth-child(4)");
+      if (rideHeaderCell) {
+        rideHeaderCell.textContent = "승차시간";
+        rideHeaderCell.style.display = "table-cell";
+        rideHeaderCell.style.visibility = "visible";
+        rideHeaderCell.style.color = "#111";
+        rideHeaderCell.style.webkitTextFillColor = "#111";
+        rideHeaderCell.style.textShadow = "none";
+        rideHeaderCell.style.background = "#ededed";
+        rideHeaderCell.style.backgroundColor = "#ededed";
+        rideHeaderCell.style.textAlign = "center";
+        rideHeaderCell.style.fontWeight = "800";
+      }
+
+      // html2canvas가 textarea 내부 스크롤 영역을 잘라 찍는 문제 방지:
+      // 캡쳐 직전 textarea를 동일한 모양의 div로 바꿔 전체 글자를 DOM 텍스트로 렌더링한다.
+      tableClone.querySelectorAll("textarea").forEach((textarea) => {
+        const sourceTextarea = sourceTable.querySelector("#footerNoteInput");
+        const computed = window.getComputedStyle(sourceTextarea || textarea);
+        const value = String((sourceTextarea && sourceTextarea.value) || textarea.value || textarea.textContent || "");
+        const mirror = document.createElement("div");
+        mirror.className = textarea.className + " capture-textarea-mirror";
+        mirror.textContent = value;
+        mirror.style.width = "100%";
+        mirror.style.minHeight = Math.max((sourceTextarea && sourceTextarea.scrollHeight) || 0, (sourceTextarea && sourceTextarea.offsetHeight) || 0, textarea.scrollHeight || 0, textarea.offsetHeight || 0, 38) + "px";
+        mirror.style.padding = computed.padding;
+        mirror.style.margin = computed.margin;
+        mirror.style.border = computed.border;
+        mirror.style.borderRadius = computed.borderRadius;
+        mirror.style.background = "#dff4ff";
+        mirror.style.backgroundColor = "#dff4ff";
+        mirror.style.color = "#000";
+        mirror.style.font = computed.font;
+        mirror.style.fontSize = computed.fontSize;
+        mirror.style.fontFamily = computed.fontFamily;
+        mirror.style.fontWeight = computed.fontWeight;
+        mirror.style.lineHeight = computed.lineHeight;
+        mirror.style.letterSpacing = "normal";
+        mirror.style.wordSpacing = "normal";
+        mirror.style.textAlign = "left";
+        mirror.style.whiteSpace = "pre-wrap";
+        mirror.style.wordBreak = "keep-all";
+        mirror.style.overflowWrap = "anywhere";
+        mirror.style.boxSizing = "border-box";
+        mirror.style.display = "block";
+        mirror.style.overflow = "visible";
+        textarea.replaceWith(mirror);
+      });
+
+      const footerNoteCell = tableClone.querySelector(".footer-note-cell") || tableClone.querySelector("tfoot td:first-child");
+      if (footerNoteCell) {
+        footerNoteCell.colSpan = 4;
+        footerNoteCell.style.padding = "0";
+        footerNoteCell.style.background = "#dff4ff";
+        footerNoteCell.style.backgroundColor = "#dff4ff";
+        footerNoteCell.style.verticalAlign = "top";
+        footerNoteCell.style.textAlign = "left";
+        footerNoteCell.style.height = "auto";
+        footerNoteCell.style.minHeight = "38px";
+        footerNoteCell.style.maxHeight = "none";
+        footerNoteCell.style.whiteSpace = "normal";
+        footerNoteCell.style.overflow = "visible";
+      }
 
       tableClone.querySelectorAll(".stop-name").forEach((cell) => {
         cell.style.fontSize = "18px";
@@ -4840,18 +5049,15 @@ if (!document.body.classList.contains("admin-visible")) {
         cell.style.textAlign = "center";
       });
 
-      tableClone.querySelectorAll(".time-small").forEach((cell) => {
-        cell.style.fontSize = "9px";
-        cell.style.letterSpacing = "0px";
-        cell.style.whiteSpace = "nowrap";
-      });
-
       tableClone.querySelectorAll(".time-big").forEach((cell) => {
-        cell.style.fontSize = "80px";
-        cell.style.fontWeight = "800";
+        cell.style.fontSize = "28px";
+        cell.style.fontWeight = "700";
         cell.style.letterSpacing = "0px";
         cell.style.whiteSpace = "nowrap";
-        cell.style.lineHeight = "1";
+        cell.style.lineHeight = "1.2";
+        cell.style.textAlign = "center";
+        cell.style.color = "#111";
+        cell.style.webkitTextFillColor = "#111";
       });
 
       wrapper.appendChild(tableClone);
@@ -4860,6 +5066,26 @@ if (!document.body.classList.contains("admin-visible")) {
 
       try {
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        tableClone.querySelectorAll(".capture-textarea-mirror").forEach((mirror) => {
+          const needHeight = Math.max(Math.ceil(mirror.scrollHeight || mirror.offsetHeight || 0), 38);
+          mirror.style.height = needHeight + "px";
+          mirror.style.minHeight = needHeight + "px";
+          mirror.style.maxHeight = "none";
+          mirror.style.overflow = "visible";
+          const cell = mirror.closest("td");
+          if (cell) {
+            cell.style.height = needHeight + "px";
+            cell.style.minHeight = needHeight + "px";
+            cell.style.maxHeight = "none";
+            cell.style.overflow = "visible";
+          }
+        });
+
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+
+        const scheduleCaptureWidth = Math.max(wrapper.scrollWidth || totalWidth, totalWidth) + 4;
+        const scheduleCaptureHeight = Math.max(wrapper.scrollHeight || tableClone.scrollHeight || 0, tableClone.offsetHeight || 0) + 8;
         const canvas = await html2canvas(wrapper, {
           backgroundColor: "#ffffff",
           scale: 2.5,
@@ -4867,8 +5093,10 @@ if (!document.body.classList.contains("admin-visible")) {
           logging: false,
           scrollX: 0,
           scrollY: 0,
-          windowWidth: Math.max(1800, totalWidth + 80),
-          windowHeight: Math.max(1200, wrapper.scrollHeight + 80)
+          windowWidth: Math.max(1200, totalWidth + 80),
+          windowHeight: Math.max(1200, scheduleCaptureHeight + 80),
+          width: scheduleCaptureWidth,
+          height: scheduleCaptureHeight
         });
         downloadCanvas(canvas, fileName);
       } finally {
