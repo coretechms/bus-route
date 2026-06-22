@@ -1546,17 +1546,6 @@ body.edit-on #routeBoard td:nth-child(3) {
   box-sizing: border-box !important;
 }
 
-
-
-/* ===== 하단 텍스트 입력칸 글자/스페이스 간격 정상화 ===== */
-#footerNoteInput.footer-note-input,
-.footer-note-cell .capture-textarea-mirror,
-.footer-note-cell .footer-note-schedule-capture-mirror {
-  letter-spacing: normal !important;
-  word-spacing: normal !important;
-  font-kerning: normal !important;
-}
-
 body.capture-render #footerNoteInput.footer-note-input,
 body.capture-render .footer-note-cell .capture-textarea-mirror {
   height: auto !important;
@@ -1568,27 +1557,117 @@ body.capture-render .footer-note-cell .capture-textarea-mirror {
 }
 
 
-/* ===== 2026-06-16 캡쳐 보정: 하단 출발지/도착지 칸 실물 높이 고정 ===== */
-body.capture-render .route-board .footer-note-cell {
-  padding: 0 !important;
-  vertical-align: top !important;
-  height: auto !important;
-  min-height: 38px !important;
-  max-height: none !important;
-  overflow: visible !important;
+
+/* ===== 탑승장 데이터 풀다운 표시 + 이름 3명씩 배치 ===== */
+.mapping-grid {
+  align-items: start !important;
 }
-body.capture-render .route-board .footer-note-cell .capture-textarea-mirror {
+
+.mapping-card.mapping-dropdown-card {
+  cursor: pointer;
+}
+
+.mapping-card.mapping-dropdown-card .mapping-card-head {
+  cursor: pointer;
+}
+
+.mapping-card.mapping-dropdown-card .mapping-card-head::after {
+  content: "▼";
+  position: absolute;
+  right: 8px;
+  bottom: 5px;
+  font-size: 11px;
+  color: #555;
+  pointer-events: none;
+}
+
+.mapping-card.mapping-dropdown-card.is-open .mapping-card-head::after {
+  content: "▲";
+}
+
+.mapping-people-body {
+  display: none;
+  padding: 8px;
+  background: #fffffb;
+  border-top: 1px solid #e5e5e5;
+}
+
+.mapping-card.mapping-dropdown-card.is-open .mapping-people-body {
+  display: block;
+}
+
+.mapping-people-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px 6px;
+  width: 100%;
+}
+
+.mapping-person-chip {
+  min-width: 0;
+  padding: 4px 2px;
+  border: 1px solid #dedede;
+  border-radius: 7px;
+  background: #fff;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mapping-person-empty {
+  grid-column: 1 / -1;
+  color: #777;
+  font-size: 12px;
+  text-align: center;
+  padding: 8px 2px;
+}
+
+.mapping-card.mapping-dropdown-card textarea {
+  margin-top: 8px;
+  min-height: 58px;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  resize: vertical;
+}
+
+/* 탑승장 데이터 이름 편집: 관리자 화면에서는 편집활성화 없이도 항상 표시/입력 가능 */
+body.admin-visible .mapping-card.mapping-dropdown-card textarea[data-mapping-people-editor="true"],
+body.admin-visible .mapping-card.mapping-dropdown-card textarea {
   display: block !important;
-  width: 100% !important;
-  min-height: 38px !important;
-  height: auto !important;
-  max-height: none !important;
-  overflow: visible !important;
-  white-space: pre-wrap !important;
-  word-break: keep-all !important;
-  overflow-wrap: anywhere !important;
-  box-sizing: border-box !important;
-  background: #dff4ff !important;
+  pointer-events: auto !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  caret-color: auto !important;
+  background: #fffffb !important;
+}
+
+body:not(.admin-visible) .mapping-card.mapping-dropdown-card textarea {
+  display: none !important;
+}
+
+@media (max-width: 1000px) {
+  .mapping-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, max-content)) !important;
+    justify-content: center !important;
+  }
+  .mapping-people-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  .mapping-person-chip {
+    font-size: 12px;
+    padding: 4px 1px;
+  }
+}
+
+
+/* ===== 탑승장 데이터 입력 중 커서 유지 보강 ===== */
+.mapping-card.mapping-dropdown-card textarea:focus {
+  outline: 2px solid #0b6bff !important;
+  outline-offset: 0 !important;
+  caret-color: auto !important;
 }
 
 </style>
@@ -1623,7 +1702,7 @@ body.capture-render .route-board .footer-note-cell .capture-textarea-mirror {
               <textarea id="footerNoteInput" class="inline-editor footer-note-input" rows="1" placeholder="텍스트 입력"></textarea>
             </td>
             <td class="total-title">참석인원</td>
-            <td class="total-count"><span id="totalCount">0</span> 명</td>
+            <td class="total-count"><span id="totalCount">0</span>명</td>
             <td></td>
           </tr>
         </tfoot>
@@ -3573,10 +3652,13 @@ if (isLastVisibleRideRow) {
 
       state.mapping.forEach((item, index) => {
         const card = document.createElement("div");
-        card.className = "mapping-card";
+        card.className = "mapping-card mapping-dropdown-card";
+        card.setAttribute("data-mapping-index", String(index));
 
         const head = document.createElement("div");
         head.className = "mapping-card-head";
+        head.setAttribute("data-mapping-toggle-index", String(index));
+        head.setAttribute("title", "클릭하면 탑승자 이름을 펼쳐서 봅니다.");
 
         const title = document.createElement("h3");
         const regionDiv = document.createElement("div");
@@ -3631,16 +3713,55 @@ if (isLastVisibleRideRow) {
           head.appendChild(deleteBtn);
         }
 
+        const body = document.createElement("div");
+        body.className = "mapping-people-body";
+
+        const peopleGrid = document.createElement("div");
+        peopleGrid.className = "mapping-people-grid";
+
+        const refreshPeopleGrid = (text) => {
+          peopleGrid.innerHTML = "";
+          const names = String(text || "").split(/\s+/).map((name) => name.trim()).filter(Boolean);
+
+          if (names.length) {
+            names.forEach((name) => {
+              const chip = document.createElement("div");
+              chip.className = "mapping-person-chip";
+              chip.textContent = name;
+              peopleGrid.appendChild(chip);
+            });
+          } else {
+            const empty = document.createElement("div");
+            empty.className = "mapping-person-empty";
+            empty.textContent = "등록된 이름 없음";
+            peopleGrid.appendChild(empty);
+          }
+        };
+
+        refreshPeopleGrid(item.people);
+        body.appendChild(peopleGrid);
+
         const textarea = document.createElement("textarea");
         textarea.value = item.people;
-        textarea.readOnly = !adminMode;
+        // 탑승장 데이터 카드 내부 이름은 편집활성화(adminMode)와 관계없이 수정 가능
+        textarea.readOnly = false;
+        textarea.disabled = false;
+        textarea.setAttribute("data-mapping-people-editor", "true");
+
+        // 입력창 안에서 클릭/터치/키보드 입력 시 카드 토글 또는 재렌더링으로 포커스가 빠지지 않게 차단
+        ["click", "mousedown", "mouseup", "touchstart", "touchend", "dblclick"].forEach((eventName) => {
+          textarea.addEventListener(eventName, (event) => event.stopPropagation());
+        });
+
         textarea.addEventListener("input", () => {
           state.mapping[index].people = textarea.value;
+          refreshPeopleGrid(textarea.value);
           scheduleRemoteSave();
         });
 
+        body.appendChild(textarea);
         card.appendChild(head);
-        card.appendChild(textarea);
+        card.appendChild(body);
         mappingGrid.appendChild(card);
       });
 
@@ -4374,11 +4495,22 @@ if (!document.body.classList.contains("admin-visible")) {
 
     mappingGrid.addEventListener("click", (e) => {
       const deleteBtn = e.target.closest("[data-mapping-delete-index]");
-      if (!deleteBtn || !adminMode) return;
-      pendingMappingDeleteIndex = Number(deleteBtn.getAttribute("data-mapping-delete-index"));
-      const label = state.mapping[pendingMappingDeleteIndex]?.title || `명단 ${pendingMappingDeleteIndex + 1}`;
-      confirmMessage.textContent = `"${label}" 명단 데이터를 삭제할까요?`;
-      confirmOverlay.classList.add("show");
+      if (deleteBtn && adminMode) {
+        e.stopPropagation();
+        pendingMappingDeleteIndex = Number(deleteBtn.getAttribute("data-mapping-delete-index"));
+        const label = state.mapping[pendingMappingDeleteIndex]?.title || `명단 ${pendingMappingDeleteIndex + 1}`;
+        confirmMessage.textContent = `"${label}" 명단 데이터를 삭제할까요?`;
+        confirmOverlay.classList.add("show");
+        return;
+      }
+
+      const head = e.target.closest("[data-mapping-toggle-index]");
+      if (!head) return;
+      if (e.target.closest(".mapping-delete-btn")) return;
+
+      const card = head.closest(".mapping-card");
+      if (!card) return;
+      card.classList.toggle("is-open");
     });
 
     passwordCancelBtn.addEventListener("click", closePasswordDialog);
@@ -4581,30 +4713,8 @@ if (!document.body.classList.contains("admin-visible")) {
         textarea.value = sourceValue;
         textarea.textContent = sourceValue;
         textarea.setAttribute("value", sourceValue);
-
-        // 하단 출발지/도착지 칸은 캡쳐용 복제 DOM에서 scrollHeight가 과대 계산되어
-        // 비정상적으로 커지는 문제가 있으므로 실제 화면 높이(offsetHeight)만 사용한다.
-        if (textarea.id === "footerNoteInput") {
-          // 하단 입력칸은 화면 높이 고정이 아니라 입력 글자량에 맞게 캡쳐 복제본에서 다시 계산한다.
-          // 그래야 사용자가 줄을 늘렸을 때 하단 내용과 테두리가 잘리지 않는다.
-          textarea.style.height = "auto";
-          textarea.style.minHeight = "38px";
-          textarea.style.maxHeight = "none";
-          textarea.style.overflow = "visible";
-          textarea.style.whiteSpace = "pre-wrap";
-          const cloneCell = textarea.closest("td");
-          if (cloneCell) {
-            cloneCell.style.height = "auto";
-            cloneCell.style.minHeight = "38px";
-            cloneCell.style.maxHeight = "none";
-            cloneCell.style.overflow = "visible";
-          }
-          return;
-        }
-
-        const measuredHeight = Math.max(sourceTextarea.scrollHeight || 0, sourceTextarea.offsetHeight || 0, 38);
-        textarea.style.minHeight = measuredHeight + "px";
-        textarea.style.height = measuredHeight + "px";
+        textarea.style.minHeight = Math.max(sourceTextarea.scrollHeight || 0, sourceTextarea.offsetHeight || 0, 38) + "px";
+        textarea.style.height = Math.max(sourceTextarea.scrollHeight || 0, sourceTextarea.offsetHeight || 0, 38) + "px";
       });
 
       stage.appendChild(clone);
@@ -4613,16 +4723,6 @@ if (!document.body.classList.contains("admin-visible")) {
 
       const textareas = clone.querySelectorAll("textarea");
       textareas.forEach((textarea) => {
-        if (textarea.id === "footerNoteInput") {
-          textarea.style.height = "auto";
-          textarea.style.minHeight = "38px";
-          textarea.style.maxHeight = "none";
-          textarea.style.overflow = "visible";
-          textarea.style.whiteSpace = "pre-wrap";
-          textarea.rows = 1;
-          return;
-        }
-
         textarea.style.height = "auto";
         textarea.style.overflow = "visible";
         textarea.style.whiteSpace = "normal";
@@ -4726,6 +4826,8 @@ if (!document.body.classList.contains("admin-visible")) {
           const mirror = document.createElement("div");
           mirror.className = textarea.className + " capture-textarea-mirror";
           mirror.textContent = value;
+          mirror.style.width = (textarea.parentElement ? textarea.parentElement.clientWidth : textarea.offsetWidth) + "px";
+          mirror.style.minHeight = Math.max(textarea.offsetHeight, textarea.scrollHeight, 38) + "px";
           mirror.style.padding = computed.padding;
           mirror.style.margin = computed.margin;
           mirror.style.border = computed.border;
@@ -4743,60 +4845,17 @@ if (!document.body.classList.contains("admin-visible")) {
           mirror.style.wordBreak = "keep-all";
           mirror.style.overflowWrap = "anywhere";
           mirror.style.boxSizing = "border-box";
-          mirror.style.display = "block";
+          mirror.style.display = computed.display === "inline" ? "block" : computed.display;
+          mirror.style.overflow = "visible";
 
-          if (textarea.id === "footerNoteInput") {
-            mirror.style.width = "100%";
-            mirror.style.height = "auto";
-            mirror.style.minHeight = "38px";
-            mirror.style.maxHeight = "none";
-            mirror.style.overflow = "visible";
-            const cell = textarea.closest("td");
-            if (cell) {
-              cell.style.height = "auto";
-              cell.style.minHeight = "38px";
-              cell.style.maxHeight = "none";
-              cell.style.overflow = "visible";
-            }
-          } else {
-            mirror.style.width = (textarea.parentElement ? textarea.parentElement.clientWidth : textarea.offsetWidth) + "px";
-            mirror.style.minHeight = Math.max(textarea.offsetHeight, textarea.scrollHeight, 38) + "px";
-            mirror.style.overflow = "visible";
-          }
-
-          // textarea를 숨기는 방식은 CSS의 display:block !important와 충돌해서
-          // 원본 textarea + mirror가 동시에 캡쳐되는 중복 출력 원인이 된다.
-          // 캡쳐 복제본에서는 textarea 자체를 일반 div로 완전히 교체한다.
-          textarea.replaceWith(mirror);
+          textarea.style.display = "none";
+          textarea.parentNode.insertBefore(mirror, textarea.nextSibling);
         });
 
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-        // 하단 입력칸은 실제 캡쳐 복제본의 scrollHeight로 최종 높이를 확정한다.
-        // 기존 offsetHeight 고정 방식은 글자 입력으로 칸이 늘어난 상태를 놓쳐 하단이 잘렸다.
-        capture.clone.querySelectorAll(".footer-note-cell .capture-textarea-mirror").forEach((mirror) => {
-          const needHeight = Math.max(Math.ceil(mirror.scrollHeight || mirror.offsetHeight || 0), 38);
-          mirror.style.height = needHeight + "px";
-          mirror.style.minHeight = needHeight + "px";
-          mirror.style.maxHeight = "none";
-          mirror.style.overflow = "visible";
-          const cell = mirror.closest("td");
-          if (cell) {
-            cell.style.height = needHeight + "px";
-            cell.style.minHeight = needHeight + "px";
-            cell.style.maxHeight = "none";
-            cell.style.overflow = "visible";
-          }
-        });
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-
         const contentWidth = Math.max(capture.clone.scrollWidth, capture.clone.clientWidth);
         const contentHeight = Math.max(capture.clone.scrollHeight, capture.clone.clientHeight);
-
-        // html2canvas는 요소의 맨 아래 1px 테두리를 높이 계산에서 잘라내는 경우가 있어
-        // 실제 높이보다 조금 더 크게 캡쳐해서 하단 테두리까지 포함한다.
-        const captureSafeWidth = contentWidth + 4;
-        const captureSafeHeight = contentHeight + 8;
 
         const canvas = await html2canvas(capture.clone, {
           backgroundColor: "#ffffff",
@@ -4805,10 +4864,10 @@ if (!document.body.classList.contains("admin-visible")) {
           logging: false,
           scrollX: 0,
           scrollY: 0,
-          windowWidth: Math.max(document.documentElement.clientWidth, captureSafeWidth),
-          windowHeight: Math.max(document.documentElement.clientHeight, captureSafeHeight),
-          width: captureSafeWidth,
-          height: captureSafeHeight
+          windowWidth: Math.max(document.documentElement.clientWidth, contentWidth),
+          windowHeight: Math.max(document.documentElement.clientHeight, contentHeight),
+          width: contentWidth,
+          height: contentHeight
         });
 
         downloadCanvas(canvas, fileName);
@@ -4839,63 +4898,32 @@ if (!document.body.classList.contains("admin-visible")) {
       tableClone.style.margin = "0";
       tableClone.style.background = "#ddd";
 
-      // 시간표 캡쳐 전용에서 관리자용 기본이동 열은 완전히 제외한다.
-      // 원본 헤더에는 숨김 상태의 base-move-col이 남아 있어, 그대로 두면 승차시간 열 대신
-      // 숨김 기본이동 열을 4번째 열로 잡아 승차시간 글자가 사라진다.
-      tableClone.querySelectorAll(".base-move-col").forEach((cell) => cell.remove());
+      // 시간표 캡쳐에서도 원본 textarea의 현재 입력값과 실제 높이를 복제본에 반영한다.
+      const sourceTextareasForSchedule = Array.from(sourceTable.querySelectorAll("textarea"));
+      const cloneTextareasForSchedule = Array.from(tableClone.querySelectorAll("textarea"));
+      cloneTextareasForSchedule.forEach((textarea, index) => {
+        const sourceTextarea = sourceTextareasForSchedule[index];
+        if (!sourceTextarea) return;
+        const sourceValue = String(sourceTextarea.value || "");
+        textarea.value = sourceValue;
+        textarea.textContent = sourceValue;
+        textarea.setAttribute("value", sourceValue);
+        textarea.style.minHeight = Math.max(sourceTextarea.scrollHeight || 0, sourceTextarea.offsetHeight || 0, 38) + "px";
+        textarea.style.height = Math.max(sourceTextarea.scrollHeight || 0, sourceTextarea.offsetHeight || 0, 38) + "px";
+        textarea.style.overflow = "visible";
+      });
 
-      // 시간표 캡쳐 전용: 지역 / 승차지점 / 이동시간(안보임) / 승차시간 4열만 남긴다.
-      // 이동시간 열은 삭제하지 않고 폭과 선을 유지하되, 글자만 투명 처리한다.
-      Array.from(tableClone.querySelectorAll("thead tr, tbody tr, tfoot tr")).forEach((row, rowIndex) => {
+      const allRows = tableClone.querySelectorAll("tr");
+      allRows.forEach((row, rowIndex) => {
         const cells = Array.from(row.children);
-
-        if (row.parentElement && row.parentElement.tagName === "THEAD" && rowIndex === 0) {
+        cells.forEach((cell, cellIndex) => {
+          if (cellIndex >= 4) {
+            cell.remove();
+          }
+        });
+        if (rowIndex === 0) {
           const firstCell = row.querySelector("th, td");
           if (firstCell) firstCell.colSpan = 4;
-          cells.slice(1).forEach((cell) => cell.remove());
-          return;
-        }
-
-        if (row.parentElement && row.parentElement.tagName === "THEAD") {
-          // 헤더: 지역(0), 승차지점(1), 이동시간(2: 글자 숨김), 승차시간(3) 유지
-          cells.forEach((cell, cellIndex) => {
-            if (![0, 1, 2, 3].includes(cellIndex)) cell.remove();
-          });
-          const headerCells = Array.from(row.children);
-          if (headerCells[2]) {
-            headerCells[2].innerHTML = "이동<br>시간";
-            headerCells[2].style.color = "transparent";
-            headerCells[2].style.webkitTextFillColor = "transparent";
-            headerCells[2].style.textShadow = "none";
-          }
-          if (headerCells[3]) {
-            headerCells[3].textContent = "승차시간";
-            headerCells[3].style.display = "table-cell";
-            headerCells[3].style.visibility = "visible";
-            headerCells[3].style.color = "#111";
-            headerCells[3].style.webkitTextFillColor = "#111";
-            headerCells[3].style.textShadow = "none";
-          }
-          return;
-        }
-
-        if (row.parentElement && row.parentElement.tagName === "TFOOT") {
-          // 하단: 텍스트 입력칸만 캡쳐하고 참석인원/인원/삭제열은 완전 제거
-          const firstCell = cells[0];
-          cells.slice(1).forEach((cell) => cell.remove());
-          if (firstCell) firstCell.colSpan = 4;
-          return;
-        }
-
-        // 본문: 지역(0), 승차지점(1), 이동시간(2: 글자 숨김), 승차시간(3) 유지
-        cells.forEach((cell, cellIndex) => {
-          if (![0, 1, 2, 3].includes(cellIndex)) cell.remove();
-        });
-        const keptCells = Array.from(row.children);
-        if (keptCells[2]) {
-          keptCells[2].style.color = "transparent";
-          keptCells[2].style.webkitTextFillColor = "transparent";
-          keptCells[2].style.textShadow = "none";
         }
       });
 
@@ -4906,20 +4934,22 @@ if (!document.body.classList.contains("admin-visible")) {
 
       const rows = tableClone.querySelectorAll("tbody tr");
       let maxStop = 0;
+      let maxMove = 0;
       let maxRide = 0;
 
       rows.forEach((tr) => {
         const tds = tr.querySelectorAll("td");
         if (tds.length >= 4) {
           maxStop = Math.max(maxStop, (tds[1].innerText || "").trim().length);
+          maxMove = Math.max(maxMove, (tds[2].innerText || "").trim().length);
           maxRide = Math.max(maxRide, (tds[3].innerText || "").trim().length);
         }
       });
 
       const regionWidth = 120;
-      const stopWidth = Math.min(900, Math.max(220, maxStop * 14));
-      const moveWidth = 70;
-      const rideWidth = Math.min(260, Math.max(150, maxRide * 20));
+      const stopWidth = Math.min(900, Math.max(200, maxStop * 14));
+      const moveWidth = Math.min(120, Math.max(40, maxMove * 10));
+      const rideWidth = Math.min(500, Math.max(180, maxRide * 20));
       const totalWidth = regionWidth + stopWidth + moveWidth + rideWidth;
 
       wrapper.style.width = totalWidth + "px";
@@ -4950,75 +4980,31 @@ if (!document.body.classList.contains("admin-visible")) {
         cell.style.wordBreak = "keep-all";
         cell.style.overflowWrap = "anywhere";
         cell.style.lineHeight = "1.45";
-        cell.style.color = "#111";
-        cell.style.webkitTextFillColor = "#111";
-        cell.style.pointerEvents = "auto";
-        cell.style.userSelect = "auto";
       });
-
-      // 공통 스타일 적용 후에도 이동시간 열 글자는 다시 숨긴다.
-      tableClone.querySelectorAll("thead tr:nth-child(2) th:nth-child(3), tbody tr td:nth-child(3)").forEach((cell) => {
-        cell.style.color = "transparent";
-        cell.style.webkitTextFillColor = "transparent";
-        cell.style.textShadow = "none";
-      });
-
-      tableClone.querySelectorAll("thead th").forEach((cell) => {
-        cell.style.background = "#ededed";
-        cell.style.backgroundColor = "#ededed";
-        cell.style.textAlign = "center";
-        cell.style.fontWeight = "800";
-        cell.style.fontSize = "15px";
-        cell.style.color = "#111";
-        cell.style.webkitTextFillColor = "#111";
-      });
-
-      tableClone.querySelectorAll("thead tr:nth-child(2) th:nth-child(3), tbody tr td:nth-child(3)").forEach((cell) => {
-        cell.style.color = "transparent";
-        cell.style.webkitTextFillColor = "transparent";
-        cell.style.textShadow = "none";
-      });
-
-      const rideHeaderCell = tableClone.querySelector("thead tr:nth-child(2) th:nth-child(4)");
-      if (rideHeaderCell) {
-        rideHeaderCell.textContent = "승차시간";
-        rideHeaderCell.style.display = "table-cell";
-        rideHeaderCell.style.visibility = "visible";
-        rideHeaderCell.style.color = "#111";
-        rideHeaderCell.style.webkitTextFillColor = "#111";
-        rideHeaderCell.style.textShadow = "none";
-        rideHeaderCell.style.background = "#ededed";
-        rideHeaderCell.style.backgroundColor = "#ededed";
-        rideHeaderCell.style.textAlign = "center";
-        rideHeaderCell.style.fontWeight = "800";
-      }
 
       // html2canvas가 textarea 내부 스크롤 영역을 잘라 찍는 문제 방지:
       // 캡쳐 직전 textarea를 동일한 모양의 div로 바꿔 전체 글자를 DOM 텍스트로 렌더링한다.
       tableClone.querySelectorAll("textarea").forEach((textarea) => {
-        const sourceTextarea = sourceTable.querySelector("#footerNoteInput");
-        const computed = window.getComputedStyle(sourceTextarea || textarea);
-        const value = String((sourceTextarea && sourceTextarea.value) || textarea.value || textarea.textContent || "");
+        const computed = window.getComputedStyle(textarea);
+        const value = String(textarea.value || textarea.textContent || "");
         const mirror = document.createElement("div");
         mirror.className = textarea.className + " capture-textarea-mirror";
         mirror.textContent = value;
         mirror.style.width = "100%";
-        mirror.style.minHeight = Math.max((sourceTextarea && sourceTextarea.scrollHeight) || 0, (sourceTextarea && sourceTextarea.offsetHeight) || 0, textarea.scrollHeight || 0, textarea.offsetHeight || 0, 38) + "px";
+        mirror.style.minHeight = Math.max(textarea.scrollHeight || 0, textarea.offsetHeight || 0, 38) + "px";
         mirror.style.padding = computed.padding;
         mirror.style.margin = computed.margin;
         mirror.style.border = computed.border;
         mirror.style.borderRadius = computed.borderRadius;
-        mirror.style.background = "#dff4ff";
-        mirror.style.backgroundColor = "#dff4ff";
-        mirror.style.color = "#000";
+        mirror.style.background = computed.backgroundColor;
+        mirror.style.color = computed.color;
         mirror.style.font = computed.font;
         mirror.style.fontSize = computed.fontSize;
         mirror.style.fontFamily = computed.fontFamily;
         mirror.style.fontWeight = computed.fontWeight;
         mirror.style.lineHeight = computed.lineHeight;
-        mirror.style.letterSpacing = "normal";
-        mirror.style.wordSpacing = "normal";
-        mirror.style.textAlign = "left";
+        mirror.style.letterSpacing = computed.letterSpacing;
+        mirror.style.textAlign = computed.textAlign;
         mirror.style.whiteSpace = "pre-wrap";
         mirror.style.wordBreak = "keep-all";
         mirror.style.overflowWrap = "anywhere";
@@ -5028,19 +5014,44 @@ if (!document.body.classList.contains("admin-visible")) {
         textarea.replaceWith(mirror);
       });
 
+      // 시간표 캡쳐의 하단 안내 텍스트는 textarea 대신 일반 div로 고정 렌더링한다.
+      // html2canvas가 textarea의 내부 스크롤 영역만 캡쳐해서 2번째 줄 이후가 빠지는 문제를 방지한다.
+      const sourceFooterNote = sourceTable.querySelector("#footerNoteInput");
+      const footerNoteValue = String((sourceFooterNote && sourceFooterNote.value) || state.footerNote || "");
       const footerNoteCell = tableClone.querySelector(".footer-note-cell") || tableClone.querySelector("tfoot td:first-child");
       if (footerNoteCell) {
         footerNoteCell.colSpan = 4;
-        footerNoteCell.style.padding = "0";
+        footerNoteCell.innerHTML = "";
+        footerNoteCell.style.padding = "8px 10px";
         footerNoteCell.style.background = "#dff4ff";
         footerNoteCell.style.backgroundColor = "#dff4ff";
         footerNoteCell.style.verticalAlign = "top";
         footerNoteCell.style.textAlign = "left";
         footerNoteCell.style.height = "auto";
-        footerNoteCell.style.minHeight = "38px";
-        footerNoteCell.style.maxHeight = "none";
+        footerNoteCell.style.minHeight = "52px";
         footerNoteCell.style.whiteSpace = "normal";
         footerNoteCell.style.overflow = "visible";
+
+        const footerTextMirror = document.createElement("div");
+        footerTextMirror.className = "footer-note-schedule-capture-mirror";
+        footerTextMirror.textContent = footerNoteValue;
+        footerTextMirror.style.display = "block";
+        footerTextMirror.style.width = "100%";
+        footerTextMirror.style.minHeight = "52px";
+        footerTextMirror.style.height = "auto";
+        footerTextMirror.style.background = "#dff4ff";
+        footerTextMirror.style.color = "#000";
+        footerTextMirror.style.fontFamily = '"돋움", Dotum, "Malgun Gothic", sans-serif';
+        footerTextMirror.style.fontSize = "15px";
+        footerTextMirror.style.fontWeight = "700";
+        footerTextMirror.style.lineHeight = "1.55";
+        footerTextMirror.style.letterSpacing = "0px";
+        footerTextMirror.style.whiteSpace = "pre-wrap";
+        footerTextMirror.style.wordBreak = "keep-all";
+        footerTextMirror.style.overflowWrap = "anywhere";
+        footerTextMirror.style.overflow = "visible";
+        footerTextMirror.style.boxSizing = "border-box";
+        footerNoteCell.appendChild(footerTextMirror);
       }
 
       tableClone.querySelectorAll(".stop-name").forEach((cell) => {
@@ -5049,15 +5060,18 @@ if (!document.body.classList.contains("admin-visible")) {
         cell.style.textAlign = "center";
       });
 
-      tableClone.querySelectorAll(".time-big").forEach((cell) => {
-        cell.style.fontSize = "28px";
-        cell.style.fontWeight = "700";
+      tableClone.querySelectorAll(".time-small").forEach((cell) => {
+        cell.style.fontSize = "9px";
         cell.style.letterSpacing = "0px";
         cell.style.whiteSpace = "nowrap";
-        cell.style.lineHeight = "1.2";
-        cell.style.textAlign = "center";
-        cell.style.color = "#111";
-        cell.style.webkitTextFillColor = "#111";
+      });
+
+      tableClone.querySelectorAll(".time-big").forEach((cell) => {
+        cell.style.fontSize = "80px";
+        cell.style.fontWeight = "800";
+        cell.style.letterSpacing = "0px";
+        cell.style.whiteSpace = "nowrap";
+        cell.style.lineHeight = "1";
       });
 
       wrapper.appendChild(tableClone);
@@ -5066,26 +5080,12 @@ if (!document.body.classList.contains("admin-visible")) {
 
       try {
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-        tableClone.querySelectorAll(".capture-textarea-mirror").forEach((mirror) => {
-          const needHeight = Math.max(Math.ceil(mirror.scrollHeight || mirror.offsetHeight || 0), 38);
-          mirror.style.height = needHeight + "px";
-          mirror.style.minHeight = needHeight + "px";
-          mirror.style.maxHeight = "none";
-          mirror.style.overflow = "visible";
+        tableClone.querySelectorAll(".footer-note-schedule-capture-mirror").forEach((mirror) => {
+          mirror.style.minHeight = Math.max(mirror.scrollHeight || 0, 52) + "px";
           const cell = mirror.closest("td");
-          if (cell) {
-            cell.style.height = needHeight + "px";
-            cell.style.minHeight = needHeight + "px";
-            cell.style.maxHeight = "none";
-            cell.style.overflow = "visible";
-          }
+          if (cell) cell.style.height = Math.max(mirror.scrollHeight || 0, 52) + 18 + "px";
         });
-
         await new Promise((resolve) => requestAnimationFrame(resolve));
-
-        const scheduleCaptureWidth = Math.max(wrapper.scrollWidth || totalWidth, totalWidth) + 4;
-        const scheduleCaptureHeight = Math.max(wrapper.scrollHeight || tableClone.scrollHeight || 0, tableClone.offsetHeight || 0) + 8;
         const canvas = await html2canvas(wrapper, {
           backgroundColor: "#ffffff",
           scale: 2.5,
@@ -5093,10 +5093,8 @@ if (!document.body.classList.contains("admin-visible")) {
           logging: false,
           scrollX: 0,
           scrollY: 0,
-          windowWidth: Math.max(1200, totalWidth + 80),
-          windowHeight: Math.max(1200, scheduleCaptureHeight + 80),
-          width: scheduleCaptureWidth,
-          height: scheduleCaptureHeight
+          windowWidth: Math.max(1800, totalWidth + 80),
+          windowHeight: Math.max(1200, wrapper.scrollHeight + 80)
         });
         downloadCanvas(canvas, fileName);
       } finally {
@@ -5821,5 +5819,35 @@ if (!document.body.classList.contains("admin-visible")) {
 })();
 </script>
 
+
+<script id="mapping-people-always-editable-patch">
+(function(){
+  function unlockMappingPeopleEditors(){
+    document.querySelectorAll('.mapping-card.mapping-dropdown-card textarea').forEach(function(textarea){
+      textarea.readOnly = false;
+      textarea.disabled = false;
+      textarea.setAttribute('data-mapping-people-editor', 'true');
+      textarea.style.pointerEvents = 'auto';
+      textarea.style.caretColor = 'auto';
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    unlockMappingPeopleEditors();
+    var grid = document.getElementById('mappingGrid');
+    if (grid && !grid.__mappingPeopleEditableObserver) {
+      grid.__mappingPeopleEditableObserver = true;
+      new MutationObserver(unlockMappingPeopleEditors).observe(grid, { childList: true, subtree: true });
+    }
+  });
+
+  window.addEventListener('load', unlockMappingPeopleEditors);
+  document.addEventListener('click', function(event){
+    if (event.target && event.target.closest && event.target.closest('.mapping-card.mapping-dropdown-card')) {
+      setTimeout(unlockMappingPeopleEditors, 0);
+    }
+  }, true);
+})();
+</script>
 </body>
 </html>
