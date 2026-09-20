@@ -1443,9 +1443,10 @@ body.edit-on .route-board col:nth-child(7) {
 
 
 
-/* 메인화면: 이동시간 열은 보이지 않게 하되, 승차시간/탑승자명단/인원 열 넓이는 기존대로 유지 */
-body:not(.edit-on) #routeBoard th:nth-child(3),
-body:not(.edit-on) #routeBoard td:nth-child(3) {
+/* 메인화면: 이동시간 열은 보이지 않게 하되, 승차시간/탑승자명단/인원 열 넓이는 기존대로 유지
+   ※ 지역 셀이 rowspan으로 생략되는 행에서도 열 위치가 어긋나지 않도록 nth-child 대신 실제 클래스 기준으로 처리 */
+body:not(.edit-on) #routeBoard thead th:nth-child(3),
+body:not(.edit-on) #routeBoard tbody td.time-small:not(.base-move-col) {
   color: transparent !important;
   -webkit-text-fill-color: transparent !important;
   text-shadow: none !important;
@@ -1455,8 +1456,8 @@ body:not(.edit-on) #routeBoard td:nth-child(3) {
   overflow: hidden !important;
 }
 
-body:not(.edit-on) #routeBoard th:nth-child(3) *,
-body:not(.edit-on) #routeBoard td:nth-child(3) * {
+body:not(.edit-on) #routeBoard thead th:nth-child(3) *,
+body:not(.edit-on) #routeBoard tbody td.time-small:not(.base-move-col) * {
   color: transparent !important;
   -webkit-text-fill-color: transparent !important;
   text-shadow: none !important;
@@ -1465,11 +1466,23 @@ body:not(.edit-on) #routeBoard td:nth-child(3) * {
   caret-color: transparent !important;
 }
 
+/* 승차시간은 지역 rowspan 여부와 관계없이 항상 정상 표시 */
+body:not(.edit-on) #routeBoard tbody td.time-big,
+body:not(.edit-on) #routeBoard tbody td.time-big * {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  text-shadow: none !important;
+  pointer-events: auto !important;
+  user-select: auto !important;
+  caret-color: auto !important;
+  overflow: visible !important;
+}
+
 /* 편집활성화 시 이동시간 열 정상 표시 */
-body.edit-on #routeBoard th:nth-child(3),
-body.edit-on #routeBoard td:nth-child(3),
-body.edit-on #routeBoard th:nth-child(3) *,
-body.edit-on #routeBoard td:nth-child(3) * {
+body.edit-on #routeBoard thead th:nth-child(3),
+body.edit-on #routeBoard tbody td.time-small:not(.base-move-col),
+body.edit-on #routeBoard thead th:nth-child(3) *,
+body.edit-on #routeBoard tbody td.time-small:not(.base-move-col) * {
   color: inherit !important;
   -webkit-text-fill-color: currentColor !important;
   pointer-events: auto !important;
@@ -1479,21 +1492,21 @@ body.edit-on #routeBoard td:nth-child(3) * {
 
 
 /* 메인화면: 승차지점과 이동시간 사이 세로실선 숨김 */
-body:not(.edit-on) #routeBoard th:nth-child(2),
-body:not(.edit-on) #routeBoard td:nth-child(2) {
+body:not(.edit-on) #routeBoard thead th:nth-child(2),
+body:not(.edit-on) #routeBoard tbody td.stop-name {
   border-right-color: transparent !important;
 }
 
-body:not(.edit-on) #routeBoard th:nth-child(3),
-body:not(.edit-on) #routeBoard td:nth-child(3) {
+body:not(.edit-on) #routeBoard thead th:nth-child(3),
+body:not(.edit-on) #routeBoard tbody td.time-small:not(.base-move-col) {
   border-left-color: transparent !important;
 }
 
 /* 편집활성화 시 세로실선 정상 표시 */
-body.edit-on #routeBoard th:nth-child(2),
-body.edit-on #routeBoard td:nth-child(2),
-body.edit-on #routeBoard th:nth-child(3),
-body.edit-on #routeBoard td:nth-child(3) {
+body.edit-on #routeBoard thead th:nth-child(2),
+body.edit-on #routeBoard tbody td.stop-name,
+body.edit-on #routeBoard thead th:nth-child(3),
+body.edit-on #routeBoard tbody td.time-small:not(.base-move-col) {
   border-left-color: var(--line) !important;
   border-right-color: var(--line) !important;
 }
@@ -1670,6 +1683,45 @@ body:not(.admin-visible) .mapping-card.mapping-dropdown-card textarea {
   caret-color: auto !important;
 }
 
+
+    /* 관리자 모드: 탑승장 데이터의 이름 칩(작은 이름 박스) 완전 숨김 */
+    body.admin-visible .mapping-card .mapping-people-grid,
+    body.admin-visible .mapping-card .mapping-person-chip,
+    body.admin-visible .mapping-card .mapping-person-empty {
+      display: none !important;
+    }
+
+  
+
+/* ===== 지정 버튼 높이: 비번초기화 버튼과 동일한 28px (최종 우선 적용) ===== */
+html body #preLoginCaptureMainBtn,
+html body #preLoginScheduleMainBtn,
+html body #adminAllBtn,
+html body #adminGroupToggleBtn,
+html body #editGroupToggleBtn,
+html body #passwordOkBtn,
+html body #resetBtn,
+html body #routeDataBackupBtn,
+html body #routeDataRestoreBtn,
+html body #mappingResetBtn,
+html body #passwordChangeModeBtn,
+html body #passwordRecoveryGenerateBtn,
+html body #systemPasswordChangeModeBtn,
+html body #adminToggle,
+html body #saveBtn,
+html body #addRowBtn,
+html body #deleteModeBtn,
+html body #addMappingBtn {
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  box-sizing: border-box !important;
+  line-height: 1.1 !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
 </style>
 </head>
 <body>
@@ -1712,28 +1764,28 @@ body:not(.admin-visible) .mapping-card.mapping-dropdown-card textarea {
     <div class="toolbar">
       <div class="toolbar-box">
         <div class="toolbar-left">
-          <button id="adminAllBtn" class="btn btn-exit">관리자</button>
-          <button id="preLoginCaptureMainBtn" class="btn btn-capture" type="button">캡쳐</button>
-          <button id="preLoginScheduleMainBtn" class="btn btn-capture" type="button">시간표</button>
-          <button id="adminGroupToggleBtn" class="btn group-toggle-only" type="button">시스템관리자</button>
-          <button id="editGroupToggleBtn" class="btn group-toggle-only" type="button">편집</button>
+          <button id="adminAllBtn" class="btn btn-exit" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">관리자</button>
+          <button id="preLoginCaptureMainBtn" class="btn btn-capture" type="button" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">캡쳐</button>
+          <button id="preLoginScheduleMainBtn" class="btn btn-capture" type="button" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">시간표</button>
+          <button id="adminGroupToggleBtn" class="btn group-toggle-only" type="button" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">시스템관리자</button>
+          <button id="editGroupToggleBtn" class="btn group-toggle-only" type="button" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">편집</button>
 
           <span id="adminButtonGroup" class="button-subgroup admin-button-group">
-            <button id="resetBtn" class="btn">초기화</button>
-            <button id="routeDataBackupBtn" class="btn">백업</button>
-            <button id="routeDataRestoreBtn" class="btn">복구</button>
-            <button id="mappingResetBtn" class="btn">데이터초기화</button>
-            <button id="passwordChangeModeBtn" type="button" class="btn">비번변경</button>
-            <button id="passwordRecoveryGenerateBtn" type="button" class="btn" style="background:#1f9d45; border-color:#1f9d45; color:#fff;">복구코드생성</button>
-            <button id="systemPasswordChangeModeBtn" type="button" class="btn">시스템관리자 비번변경</button>
+            <button id="resetBtn" class="btn" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">초기화</button>
+            <button id="routeDataBackupBtn" class="btn" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">백업</button>
+            <button id="routeDataRestoreBtn" class="btn" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">복구</button>
+            <button id="mappingResetBtn" class="btn" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">데이터초기화</button>
+            <button id="passwordChangeModeBtn" type="button" class="btn" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">비번변경</button>
+            <button id="passwordRecoveryGenerateBtn" type="button" class="btn" style="background:#1f9d45; border-color:#1f9d45; color:#fff; height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">복구코드생성</button>
+            <button id="systemPasswordChangeModeBtn" type="button" class="btn" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">시스템관리자 비번변경</button>
           </span>
 
           <span id="editButtonGroup" class="button-subgroup edit-button-group">
-            <button id="adminToggle" class="btn btn-admin">편집 활성화</button>
-            <button id="saveBtn" class="btn">내용저장</button>
-            <button id="addRowBtn" class="btn">행 추가</button>
-            <button id="deleteModeBtn" class="btn">행삭제</button>
-            <button id="addMappingBtn" class="btn">탑승장 추가</button>
+            <button id="adminToggle" class="btn btn-admin" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">편집 활성화</button>
+            <button id="saveBtn" class="btn" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">내용저장</button>
+            <button id="addRowBtn" class="btn" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">행 추가</button>
+            <button id="deleteModeBtn" class="btn" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">행삭제</button>
+            <button id="addMappingBtn" class="btn" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">탑승장 추가</button>
           </span>
         </div>
         <div class="toolbar-right"></div>
@@ -1853,7 +1905,7 @@ body:not(.admin-visible) .mapping-card.mapping-dropdown-card textarea {
       <div class="password-actions">
         <button id="passwordCancelBtn" type="button" class="confirm-btn">취소</button>
         <button id="preLoginResetPasswordBtn" type="button" class="confirm-btn" style="display:none; background:#1f9d45; border-color:#1f9d45; color:#fff;">비번초기화</button>
-                <button id="passwordOkBtn" type="button" class="confirm-btn" style="display:none; background:#d80000; border-color:#d80000; color:#fff;">확인</button>
+                <button id="passwordOkBtn" type="button" class="confirm-btn" style="display:none; background:#d80000; border-color:#d80000; color:#fff; height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">확인</button>
       </div>
     </div>
   </div>
@@ -3739,7 +3791,10 @@ if (isLastVisibleRideRow) {
         };
 
         refreshPeopleGrid(item.people);
-        body.appendChild(peopleGrid);
+        // 관리자 모드에서는 이름 편집 textarea만 표시하고, 위쪽 이름 칩(작은 박스)은 표시하지 않음
+        if (!adminMode) {
+          body.appendChild(peopleGrid);
+        }
 
         const textarea = document.createElement("textarea");
         textarea.value = item.people;
@@ -5829,6 +5884,20 @@ if (!document.body.classList.contains("admin-visible")) {
       textarea.setAttribute('data-mapping-people-editor', 'true');
       textarea.style.pointerEvents = 'auto';
       textarea.style.caretColor = 'auto';
+
+      // 입력된 모든 이름이 보이도록 편집 박스 높이를 내용에 맞춰 자동 조절
+      textarea.style.overflowY = 'hidden';
+      textarea.style.resize = 'none';
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.max(58, textarea.scrollHeight) + 'px';
+
+      if (!textarea.__autoHeightBound) {
+        textarea.__autoHeightBound = true;
+        textarea.addEventListener('input', function(){
+          this.style.height = 'auto';
+          this.style.height = Math.max(58, this.scrollHeight) + 'px';
+        });
+      }
     });
   }
 
