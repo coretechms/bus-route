@@ -1967,7 +1967,7 @@ html body #addMappingBtn {
 
     const REMOTE_BOARD_PATH = "busRouteApp/shared/board";
     const REMOTE_ADMIN_PATH = "busRouteApp/shared/admin";
-    const REMOTE_SEATS_PATH = "busSeatApp/seats";
+    const REMOTE_SEAT_ROOT_PATH = "busSeatApp";
     const REMOTE_SEAT_INFO_TITLE_MAIN_PATH = "busSeatApp/busInfo/infoTitleMain";
     // 실제 bus-seat-ver2는 화면 입력칸 id가 infoTitleMain이지만 Firebase에는 busInfo.titleMain으로 저장합니다.
     const REMOTE_SEAT_INFO_TITLE_PATH = "busSeatApp/busInfo/titleMain";
@@ -3835,17 +3835,25 @@ if (isLastVisibleRideRow) {
       return names;
     }
 
-    function extractSeatNamesFromSnapshot(snapshot) {
-      const names = [];
-      if (!snapshot) return names;
+    function extractSeatNamesFromValue(seatsValue) {
+      if (!seatsValue || typeof seatsValue !== "object") return [];
 
-      snapshot.forEach((child) => {
-        const data = child.val() || {};
-        const rawName = String(data.name || "").trim();
-        if (rawName) names.push(rawName);
-      });
+      return Object.keys(seatsValue)
+        .filter((key) => /^\d+$/.test(String(key)))
+        .sort((a, b) => Number(a) - Number(b))
+        .map((key) => String(seatsValue[key]?.name || "").trim())
+        .filter(Boolean);
+    }
 
-      return names;
+    function extractFleetSeatNames(rootValue) {
+      const root = rootValue && typeof rootValue === "object" ? rootValue : {};
+      const vehicle1Names = extractSeatNamesFromValue(root.seats);
+      const secondVehicleEnabled = root?.fleet?.secondVehicleEnabled === true;
+      const vehicle2Names = secondVehicleEnabled
+        ? extractSeatNamesFromValue(root?.vehicles?.["2"]?.seats)
+        : [];
+
+      return [...vehicle1Names, ...vehicle2Names];
     }
 
     async function applyImportedNamesFromSeats(names, options = {}) {
@@ -3881,13 +3889,15 @@ if (isLastVisibleRideRow) {
       const seatRealtimeDb = getBusSeatRealtimeDb();
       if (!seatRealtimeDb || importedNamesRealtimeBound) return;
 
-      const seatsRef = seatRealtimeDb.ref(REMOTE_SEATS_PATH);
-      seatsRef.off();
+      // 1호차 좌석은 busSeatApp/seats, 2호차 좌석은
+      // busSeatApp/vehicles/2/seats에 저장됩니다. 운영 차량 설정까지 같은
+      // 시점의 자료로 계산하기 위해 busSeatApp 루트를 한 번만 구독합니다.
+      const seatsRef = seatRealtimeDb.ref(REMOTE_SEAT_ROOT_PATH);
       importedNamesRealtimeBound = true;
 
       seatsRef.on("value", async (snapshot) => {
         try {
-          const names = extractSeatNamesFromSnapshot(snapshot);
+          const names = extractFleetSeatNames(snapshot.val());
           const incomingJoined = names.join(" ").trim();
           const currentJoined = String(state.importedNames || "").trim();
 
@@ -3897,7 +3907,7 @@ if (isLastVisibleRideRow) {
 
           importedNamesRealtimeReady = true;
           await applyImportedNamesFromSeats(names);
-          console.log("Firebase 이름가져오기 실시간 동기화 완료:", REMOTE_SEATS_PATH);
+          console.log("Firebase 1·2호차 이름가져오기 실시간 동기화 완료:", REMOTE_SEAT_ROOT_PATH);
         } catch (error) {
           console.error("Firebase 이름가져오기 실시간 동기화 오류:", error);
         }
