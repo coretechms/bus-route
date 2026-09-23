@@ -1323,6 +1323,10 @@
       white-space: nowrap !important;
     }
 
+    #importedNamesPanel {
+      display: none !important;
+    }
+
     body.admin-visible #preLoginCaptureMainBtn,
     body.admin-visible #preLoginScheduleMainBtn {
       display: none !important;
@@ -1550,12 +1554,18 @@ body.edit-on #routeBoard tbody td.time-small:not(.base-move-col) {
   overflow: hidden !important;
   padding: 8px 10px !important;
   background: #dff4ff !important;
-  font: inherit !important;
+  font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif !important;
   font-size: var(--fs-body) !important;
-  line-height: 1.55 !important;
-  white-space: pre-wrap !important;
-  word-break: keep-all !important;
-  overflow-wrap: anywhere !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  text-align: left !important;
+  line-height: 1.5 !important;
+  tab-size: 4 !important;
+  white-space: break-spaces !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
   box-sizing: border-box !important;
 }
 
@@ -1564,9 +1574,12 @@ body.capture-render .footer-note-cell .capture-textarea-mirror {
   height: auto !important;
   min-height: 38px !important;
   overflow: visible !important;
-  white-space: pre-wrap !important;
-  word-break: keep-all !important;
-  overflow-wrap: anywhere !important;
+  white-space: break-spaces !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  word-spacing: normal !important;
+  letter-spacing: normal !important;
+  tab-size: 4 !important;
 }
 
 
@@ -1696,6 +1709,7 @@ body:not(.admin-visible) .mapping-card.mapping-dropdown-card textarea {
 /* ===== 지정 버튼 높이: 비번초기화 버튼과 동일한 28px (최종 우선 적용) ===== */
 html body #preLoginCaptureMainBtn,
 html body #preLoginScheduleMainBtn,
+html body #returnToSeatBtn,
 html body #adminAllBtn,
 html body #adminGroupToggleBtn,
 html body #editGroupToggleBtn,
@@ -1767,6 +1781,7 @@ html body #addMappingBtn {
           <button id="adminAllBtn" class="btn btn-exit" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">관리자</button>
           <button id="preLoginCaptureMainBtn" class="btn btn-capture" type="button" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">캡쳐</button>
           <button id="preLoginScheduleMainBtn" class="btn btn-capture" type="button" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">시간표</button>
+          <button id="returnToSeatBtn" class="btn btn-exit" type="button" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">나가기</button>
           <button id="adminGroupToggleBtn" class="btn group-toggle-only" type="button" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">시스템관리자</button>
           <button id="editGroupToggleBtn" class="btn group-toggle-only" type="button" style="height:28px !important; min-height:28px !important; max-height:28px !important; padding-top:0 !important; padding-bottom:0 !important; box-sizing:border-box !important; line-height:1.1 !important;">편집</button>
 
@@ -1802,7 +1817,7 @@ html body #addMappingBtn {
           </div>
         </div>
         <div id="mappingGrid" class="mapping-grid"></div>
-        <div style="margin-top:16px; border-top:1px solid #d8d8d8; padding-top:14px;">
+        <div id="importedNamesPanel" style="margin-top:16px; border-top:1px solid #d8d8d8; padding-top:14px;">
           <h3 style="margin:0 0 10px; font-size:17px;">가져온 이름 보관함</h3>
           <div class="muted" style="margin-bottom:10px;">메인 UI의 탑승자 명단에서 가져온 이름을 아래 칸에 보관합니다.</div>
           <textarea id="importedNamesBox" class="inline-editor" rows="6" style="width:100%; min-height:120px; border:1px solid #c8c8c8; border-radius:10px; padding:10px; background:#fffdf6;"></textarea>
@@ -2276,6 +2291,7 @@ function normalizeSeatMainTitle(value) {
     const captureScheduleBtn = document.getElementById("captureScheduleBtn");
     const preLoginCaptureMainBtn = document.getElementById("preLoginCaptureMainBtn");
     const preLoginScheduleMainBtn = document.getElementById("preLoginScheduleMainBtn");
+    const returnToSeatBtn = document.getElementById("returnToSeatBtn");
     const passwordChangeModeBtn = document.getElementById("passwordChangeModeBtn");
     const systemPasswordChangeModeBtn = document.getElementById("systemPasswordChangeModeBtn");
     const adminAllBtn = document.getElementById("adminAllBtn");
@@ -4633,6 +4649,14 @@ if (!document.body.classList.contains("admin-visible")) {
 
 
 
+    footerNoteInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Tab" || event.ctrlKey || event.altKey || event.metaKey) return;
+      event.preventDefault();
+      const start = footerNoteInput.selectionStart;
+      const end = footerNoteInput.selectionEnd;
+      footerNoteInput.setRangeText("\t", start, end, "end");
+      footerNoteInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
     footerNoteInput.addEventListener("input", () => {
       resizeFooterNoteInput();
       state.footerNote = footerNoteInput.value;
@@ -4736,6 +4760,17 @@ if (!document.body.classList.contains("admin-visible")) {
     if (preLoginScheduleMainBtn) {
       preLoginScheduleMainBtn.addEventListener("click", async () => {
         await runScheduleCapture(preLoginScheduleMainBtn);
+      });
+    }
+
+    if (returnToSeatBtn) {
+      returnToSeatBtn.addEventListener("click", () => {
+        try {
+          sessionStorage.setItem("bus-seat-admin-refresh-mode-v1", "member");
+          sessionStorage.removeItem("bus-seat-admin-entry-refresh-v1");
+          localStorage.removeItem("bus-seat-admin-entry-persist-v1");
+        } catch (error) {}
+        window.location.href = "https://coretechms.github.io/bus-seat/";
       });
     }
 
@@ -5069,10 +5104,12 @@ if (!document.body.classList.contains("admin-visible")) {
         mirror.style.fontWeight = computed.fontWeight;
         mirror.style.lineHeight = computed.lineHeight;
         mirror.style.letterSpacing = computed.letterSpacing;
+        mirror.style.wordSpacing = computed.wordSpacing;
+        mirror.style.tabSize = computed.tabSize;
         mirror.style.textAlign = computed.textAlign;
-        mirror.style.whiteSpace = "pre-wrap";
-        mirror.style.wordBreak = "keep-all";
-        mirror.style.overflowWrap = "anywhere";
+        mirror.style.whiteSpace = textarea.id === "footerNoteInput" ? "break-spaces" : "pre-wrap";
+        mirror.style.wordBreak = textarea.id === "footerNoteInput" ? "normal" : "keep-all";
+        mirror.style.overflowWrap = textarea.id === "footerNoteInput" ? "break-word" : "anywhere";
         mirror.style.boxSizing = "border-box";
         mirror.style.display = "block";
         mirror.style.overflow = "visible";
@@ -5106,14 +5143,17 @@ if (!document.body.classList.contains("admin-visible")) {
         footerTextMirror.style.height = "auto";
         footerTextMirror.style.background = "#dff4ff";
         footerTextMirror.style.color = "#000";
-        footerTextMirror.style.fontFamily = '"돋움", Dotum, "Malgun Gothic", sans-serif';
-        footerTextMirror.style.fontSize = "15px";
-        footerTextMirror.style.fontWeight = "700";
-        footerTextMirror.style.lineHeight = "1.55";
-        footerTextMirror.style.letterSpacing = "0px";
-        footerTextMirror.style.whiteSpace = "pre-wrap";
-        footerTextMirror.style.wordBreak = "keep-all";
-        footerTextMirror.style.overflowWrap = "anywhere";
+        const footerStyle = sourceFooterNote ? window.getComputedStyle(sourceFooterNote) : null;
+        footerTextMirror.style.fontFamily = footerStyle?.fontFamily || '"Malgun Gothic", sans-serif';
+        footerTextMirror.style.fontSize = footerStyle?.fontSize || "15px";
+        footerTextMirror.style.fontWeight = footerStyle?.fontWeight || "400";
+        footerTextMirror.style.lineHeight = footerStyle?.lineHeight || "1.5";
+        footerTextMirror.style.letterSpacing = "normal";
+        footerTextMirror.style.wordSpacing = "normal";
+        footerTextMirror.style.tabSize = "4";
+        footerTextMirror.style.whiteSpace = "break-spaces";
+        footerTextMirror.style.wordBreak = "normal";
+        footerTextMirror.style.overflowWrap = "break-word";
         footerTextMirror.style.overflow = "visible";
         footerTextMirror.style.boxSizing = "border-box";
         footerNoteCell.appendChild(footerTextMirror);
